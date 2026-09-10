@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IP-SAKTI — Regulatory AI for Ayush</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=23">
+</head>
+<body>
+
+  <div class="chat-app-layout">
+    <!-- Sleek Left Sidebar (ChatGPT / Apple / Nothing Minimalist Style) -->
+    <aside class="chat-sidebar" id="chatSidebar">
+      <div class="sidebar-top">
+        <div class="brand-badge">
+          <div class="brand-dot"></div>
+          <div class="brand-text">
+            <span class="brand-name">IP-SAKTI</span>
+            <span class="brand-sub">Ministry of Ayush</span>
+          </div>
+        </div>
+
+        <button class="new-chat-btn" onclick="startNewChat()">
+          <span>+</span>
+          <span>New Inquiry</span>
+        </button>
+      </div>
+
+      <!-- Recent / Saved Inquiries (Normal Chatbot Style) -->
+      <div class="sidebar-threads" id="sidebarChatbotThreads">
+        <div class="threads-label">SAVED CHATS</div>
+        <div id="sidebarUserChatsList">
+          <!-- Populated dynamically via app.js -->
+        </div>
+
+        <div class="threads-label" style="margin-top: 14px;">REGULATORY TOOLS</div>
+        <div class="thread-item pro-sidebar-item" onclick="toggleTierMode()" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25);">
+          <span class="thread-icon" style="color: #D97706;">★</span>
+          <div class="thread-text" style="font-weight: 600; color: #92400E;">Paid Tier</div>
+          <span class="sidebar-pro-pill" style="font-size: 10px; font-weight: 700; background: #D97706; color: #FFF; padding: 1px 6px; border-radius: 4px; margin-left: auto;">PAID</span>
+        </div>
+
+        <div class="thread-item" onclick="openScannerModal()">
+          <span class="thread-icon">🔬</span>
+          <div class="thread-text">Formulation TKDL Screener</div>
+        </div>
+
+        <div class="thread-item" onclick="openArchitectureModal()">
+          <span class="thread-icon">⚡</span>
+          <div class="thread-text">StateGraph Architecture</div>
+        </div>
+      </div>
+
+      <!-- Dedicated Achieve Goal History (Paid Tier: Achieve Goal) -->
+      <div class="sidebar-threads hidden" id="sidebarGoalThreads">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 0 4px;">
+          <div class="threads-label" style="margin: 0; color: #1D4ED8; font-weight: 800; display: flex; align-items: center; gap: 6px;">
+            <span>🎯</span>
+            <span>GOAL ROADMAPS</span>
+          </div>
+          <button class="goal-new-btn-sidebar" onclick="resetAchieveGoalView()" title="Create New Goal">
+            <span>+ New</span>
+          </button>
+        </div>
+        <div id="sidebarGoalRoadmapsList">
+          <!-- Populated dynamically with saved goal roadmaps -->
+        </div>
+      </div>
+
+      <!-- Dedicated Mentorship Consultations History (Paid Tier: Mentorship) -->
+      <div class="sidebar-threads hidden" id="sidebarMentorshipThreads">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 0 4px;">
+          <div class="threads-label" style="margin: 0; color: #7C3AED; font-weight: 800; display: flex; align-items: center; gap: 6px;">
+            <span>🏛️</span>
+            <span>MENTOR ADVISORY</span>
+          </div>
+          <button class="goal-new-btn-sidebar" style="background: #EDE9FE; color: #6D28D9; border-color: #DDD6FE;" onclick="refreshMentorsView()" title="All Mentors Directory">
+            <span>Directory</span>
+          </button>
+        </div>
+        <div id="sidebarMentorshipList">
+          <!-- Populated dynamically with active mentor chat threads & booked slots -->
+        </div>
+      </div>
+
+      <!-- Sidebar Bottom (StateGraph Architecture Trigger) -->
+      <div class="sidebar-footer">
+        <div class="model-pill-clean" onclick="openArchitectureModal()">
+          <div class="model-status-indicator"></div>
+          <div class="model-meta">
+            <div class="model-title">StateGraph Engine</div>
+            <div class="model-id" id="sidebarModelText">8 Nodes • 12 Statutory Edges</div>
+          </div>
+          <span class="settings-gear">⚡</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Chat Workspace -->
+    <div class="chat-main">
+      <!-- Minimalist Top Navigation Header -->
+      <header class="chat-header">
+        <div class="header-left-group">
+          <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Toggle Sidebar">
+            ☰
+          </button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="model-text" style="font-weight: 700; color: #0F172A; font-size: 14px;">IP-SAKTI Sahayak</span>
+            <select id="headerModelSelect" class="header-model-dropdown" onchange="handleHeaderModelChange(this.value)">
+              <optgroup label="⚡ NVIDIA NIM (Cloud)">
+                <option value="nvidia/nemotron-3-ultra-550b-a55b" selected>⚡ Nemotron-3 Ultra (Accuracy: 98.2%)</option>
+                <option value="nvidia/nemotron-3.5-lightning-30b-a3b">⚡ Nemotron-3.5 Lightning (Speed: 18ms)</option>
+                <option value="meta/llama-3.3-70b-instruct">🦙 Llama-3.3 70B (Accuracy: 95.8%)</option>
+                <option value="deepseek-ai/deepseek-r1">🧠 DeepSeek-R1 (Reasoning: 97.1%)</option>
+              </optgroup>
+              <optgroup label="🤖 OpenAI (Cloud)">
+                <option value="gpt-4o">🤖 OpenAI GPT-4o (Accuracy: 98.9%)</option>
+                <option value="gpt-4o-mini">🤖 OpenAI GPT-4o-Mini (Speed: 22ms)</option>
+                <option value="o3-mini">🧠 OpenAI o3-Mini (Reasoning: 98.5%)</option>
+                <option value="o1">🧠 OpenAI o1 (Deep Reasoning: 99.1%)</option>
+              </optgroup>
+              <optgroup label="💻 Ollama (Local & Offline - No Key)">
+                <option value="llama3.2">💻 Ollama Llama-3.2 (Local 100%)</option>
+                <option value="llama3:8b">💻 Ollama Llama-3 8B (Local 100%)</option>
+                <option value="qwen2.5:7b">💻 Ollama Qwen-2.5 (Local 100%)</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+
+        <div class="header-right-group">
+          <button class="header-pro-btn" id="headerProBtn" onclick="toggleTierMode()" title="Switch between Free and Paid Tier">
+            <span class="pro-sparkle">★</span>
+            <span class="pro-label">Paid</span>
+            <span class="pro-badge">PAID</span>
+          </button>
+          <button class="header-icon-btn" onclick="openArchitectureModal()" title="Multi-Agent StateGraph Architecture">
+            <span>⚡ Architecture</span>
+          </button>
+          <button class="header-icon-btn" onclick="openModelConfigModal()" title="Model & API Configuration">
+            <span>⚙️ Settings</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Chat Scrollable Container -->
+      <div class="chat-scroll-area" id="chatScrollArea">
+        <!-- Empty State Hero (ChatGPT / Nothing Style) -->
+        <div class="chat-empty-state" id="emptyStateHero">
+          <div class="empty-icon-circle">🏛️</div>
+          <h1 class="empty-heading">What Ayush regulation, patent, or compliance can I assist with today?</h1>
+          <p class="empty-sub">Evidence-first regulatory intelligence grounded across Indian (IPO, NBA, Ayush) and Global (WIPO, USPTO, EMA, FDA) regimes.</p>
+
+          <div class="prompt-suggestions-grid">
+            <button class="suggestion-card" onclick="submitPrompt('Can I patent an Ayurvedic topical pain relief balm containing Curcumin and Wintergreen Oil in India?')">
+              <div class="card-prompt-title">Can I patent an Ayurvedic pain relief balm?</div>
+              <div class="card-prompt-sub">Curcumin + Wintergreen Oil Section 3(p) & 3(e) check</div>
+            </button>
+
+            <button class="suggestion-card" onclick="submitPrompt('What are the statutory requirements to export standardized Ashwagandha extract to Germany under EU THMPD?')">
+              <div class="card-prompt-title">Exporting Ashwagandha to Germany</div>
+              <div class="card-prompt-sub">EU THMPD 15-year rule & NBA Form 1 export clearance</div>
+            </button>
+
+            <button class="suggestion-card" onclick="submitPrompt('What is the difference between licensing a Classical Ayurvedic Cough Syrup versus a Proprietary Syrup under Rule 158-B?')">
+              <div class="card-prompt-title">Classical vs Proprietary Cough Syrup</div>
+              <div class="card-prompt-sub">Rule 158-B safety, acute toxicity & pilot efficacy data</div>
+            </button>
+
+            <button class="suggestion-card" onclick="submitPrompt('I am an Unani Hakim. Can I patent a topical ointment made with Asgandh Nagori and Filfil Siyah for arthritis?')">
+              <div class="card-prompt-title">🌿 Hakim Unani Dialect Normalizer</div>
+              <div class="card-prompt-sub">Asgandh Nagori & Filfil Siyah mapped to UPI Monographs</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Messages Flow -->
+        <div class="messages-stream" id="messagesStream"></div>
+      </div>
+
+      <!-- Floating Bottom Input Pill (ChatGPT / Claude / Apple Style) -->
+      <div class="chat-input-dock">
+        <div class="input-pill-wrapper">
+          <button class="input-action-btn mic-btn" id="voiceMicBtn" title="Speak via Web Speech Recognition (English font)">
+            🎙️
+          </button>
+
+          <textarea 
+            id="userPromptInput" 
+            class="chat-textarea" 
+            rows="1" 
+            placeholder="Ask anything about Ayush patents, NBA approvals, licensing, or global export..." 
+            onkeydown="handleKeyDown(event)"
+          ></textarea>
+
+          <button class="send-btn" id="sendBtn" onclick="handleSend()">
+            ↑
+          </button>
+        </div>
+        <div class="dock-disclaimer">
+          IP-SAKTI Sahayak deterministically grounds all statements against official government gazettes. Verify with statutory authorities before legal filing.
+        </div>
+      </div>
+
+      <!-- PAID TIER WORKSPACE (Executive Suite) -->
+      <div class="pro-studio-container hidden" id="proStudioContainer">
+        <!-- Paid Tier Executive Hero Header -->
+        <div class="paid-hero-header">
+          <div class="paid-hero-badge-row">
+            <span class="paid-crown-badge">★ IP-SAKTI PAID TIER</span>
+            <span class="paid-auth-badge">Executive Workspace Active</span>
+          </div>
+          <h1 class="paid-main-title">Regulatory Intelligence &amp; Milestone Suite</h1>
+          <p class="paid-sub-title">Select an authorized module to proceed with conversational AI inquiry, multi-stage compliance execution, or statutory advisory.</p>
+        </div>
+
+        <!-- 3 Attractive Option Boxes -->
+        <div class="paid-modules-grid" id="paidModulesGrid">
+          <!-- Option 1: Normal Chatbot -->
+          <div class="paid-module-card" id="cardNormalChatbot" onclick="openPaidChatbot()">
+            <div class="paid-card-header">
+              <div class="paid-module-icon icon-chatbot">💬</div>
+              <span class="paid-card-tag tag-ready">Ready</span>
+            </div>
+            <h3 class="paid-module-title">Normal Chatbot</h3>
+            <p class="paid-module-desc">Full-spectrum AI regulatory inquiry engine with multi-agent statutory verification and real-time citations.</p>
+            <div class="paid-module-action">
+              <span class="paid-action-text">Launch Chatbot</span>
+              <span class="paid-action-arrow">→</span>
+            </div>
+          </div>
+
+          <!-- Option 2: Achieve Goal -->
+          <div class="paid-module-card" id="cardAchieveGoal" onclick="openAchieveGoalSection()">
+            <div class="paid-card-header">
+              <div class="paid-module-icon icon-goal">🎯</div>
+              <span class="paid-card-tag tag-active">6 Stages Active</span>
+            </div>
+            <h3 class="paid-module-title">Achieve Goal</h3>
+            <p class="paid-module-desc">End-to-end 6-stage milestone tracker to navigate patent, biodiversity, and drug licensing compliance.</p>
+            <div class="paid-module-action">
+              <span class="paid-action-text">Track Milestones</span>
+              <span class="paid-action-arrow">→</span>
+            </div>
+          </div>
+
+          <!-- Option 3: Mentorship -->
+          <div class="paid-module-card" id="cardMentorship" onclick="openMentorshipSection()">
+            <div class="paid-card-header">
+              <div class="paid-module-icon icon-mentor">🏛️</div>
+              <span class="paid-card-tag tag-verified">Verified Ministry</span>
+            </div>
+            <h3 class="paid-module-title">Mentorship</h3>
+            <p class="paid-module-desc">Official 1-on-1 statutory consultation gateway with verified Ministry of Ayush senior advisors.</p>
+            <div class="paid-module-action">
+              <span class="paid-action-text">Access Advisors</span>
+              <span class="paid-action-arrow">→</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACHIEVE GOAL WORKSPACE -->
+      <div class="achieve-goal-container hidden" id="achieveGoalContainer">
+        <!-- Top Navigation Bar -->
+        <div class="achieve-top-bar">
+          <div class="achieve-top-left">
+            <button class="achieve-back-btn" onclick="openPaidHub()" title="Back to Paid Modules">
+              <span>←</span>
+              <span>Back to Modules</span>
+            </button>
+            <div class="achieve-badge-title">
+              <span class="achieve-pill">🎯 ACHIEVE GOAL</span>
+              <span class="achieve-title-text" id="achieveCurrentGoalLabel">Milestone Roadmap Generator</span>
+            </div>
+          </div>
+          <div class="achieve-top-right">
+            <button class="achieve-reset-goal-btn hidden" id="achieveNewGoalBtn" onclick="resetAchieveGoalView()">
+              <span>+ New Goal</span>
+            </button>
+            <button class="achieve-back-btn" onclick="returnToFreeTier()" title="Return to Free Tier" style="margin-left: 8px;">
+              <span>← Free Tier</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Initial Goal Entry View (Before query) -->
+        <div class="achieve-entry-view" id="achieveEntryView">
+          <div class="achieve-hero">
+            <div class="achieve-hero-icon">🎯</div>
+            <h1 class="achieve-hero-heading">What regulatory milestone or goal do you want to achieve?</h1>
+            <p class="achieve-hero-sub">Enter your specific formulation, patent, export, or licensing target to generate a customized statutory roadmap.</p>
+          </div>
+
+          <!-- Sample Goal Prompt Cards (like free tier) -->
+          <div class="achieve-samples-grid">
+            <button class="achieve-sample-card" onclick="submitAchieveGoal('Formulate and patent a novel Curcumin and Boswellia topical arthritis balm with Section 3(p) clearance and NBA export approval')">
+              <div class="sample-badge">Patent &amp; Biodiversity</div>
+              <div class="sample-title">Curcumin + Boswellia Arthritis Balm</div>
+              <div class="sample-desc">Section 3(p)/3(e) synergistic non-obviousness dossier &amp; NBA Form 1 export clearance</div>
+            </button>
+
+            <button class="achieve-sample-card" onclick="submitAchieveGoal('Secure Ayush manufacturing license under Rule 158-B for Classical Ashwagandha syrup with stability study')">
+              <div class="sample-badge">Drug Licensing</div>
+              <div class="sample-title">Rule 158-B Classical Ashwagandha Syrup</div>
+              <div class="sample-desc">State Licensing Authority manufacturing dossier, shelf-life verification &amp; pilot safety data</div>
+            </button>
+
+            <button class="achieve-sample-card" onclick="submitAchieveGoal('File international PCT patent and US FDA botanical IND for standardized Brahmi extract')">
+              <div class="sample-badge">Global Expansion</div>
+              <div class="sample-title">Standardized Brahmi Extract IND</div>
+              <div class="sample-desc">US FDA 505(b)(2) botanical guidance, WIPO PCT national phase &amp; PCIM&amp;H monograph validation</div>
+            </button>
+          </div>
+
+          <!-- Center Goal Search / Input Dock (matching free tier dock) -->
+          <div class="achieve-input-dock">
+            <div class="achieve-input-wrapper">
+              <textarea 
+                id="achieveGoalInput" 
+                class="achieve-goal-textarea" 
+                rows="1" 
+                placeholder="Enter your final goal or achievement (e.g. Patent an Ayurvedic topical balm and obtain Rule 158-B license)..."
+                onkeydown="handleAchieveInputKey(event)"></textarea>
+              <button class="achieve-send-btn" id="achieveSendBtn" onclick="handleAchieveSubmit()" title="Generate Milestone Roadmap">
+                <span>↑</span>
+              </button>
+            </div>
+            <div class="achieve-dock-sub">
+              Dynamic multi-agent node roadmap will be constructed tailored to your statutory goal.
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading State Indicator (During LLM generation) -->
+        <div class="achieve-loading-state hidden" id="achieveLoadingState">
+          <div class="achieve-spinner"></div>
+          <div class="achieve-loading-title">Synthesizing Tailored Milestone Architecture</div>
+          <div class="achieve-loading-sub">Nemotron LLM &amp; Multi-Agent StateGraph evaluating botanicals, patent barriers, and statutory compliance...</div>
+        </div>
+
+        <!-- Interactive Architecture-Style Node Graph View (After query) -->
+        <div class="achieve-roadmap-view hidden" id="achieveRoadmapView">
+          <!-- Full Roadmap Canvas Container -->
+          <div class="roadmap-canvas-wrapper" id="roadmapCanvasWrapper">
+            <!-- Roadmap Controls Header -->
+            <div class="roadmap-controls-header">
+              <div class="roadmap-goal-meta">
+                <span class="goal-tag">Active Goal:</span>
+                <span class="goal-name-text" id="roadmapGoalText">Curcumin + Boswellia Arthritis Formulation</span>
+              </div>
+              <div class="roadmap-actions-group">
+                <button class="roadmap-btn-secondary" id="roadmapResetZoomBtn" onclick="resetGoalGraphZoom()">
+                  <span>🔍 Reset Zoom</span>
+                </button>
+                <button class="roadmap-btn-primary" id="implementRoadmapBtn" onclick="implementGoalRoadmap()">
+                  <span>🚀 Implement Roadmap</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Hint banner -->
+            <div class="roadmap-zoom-hint" id="roadmapZoomHint">
+              💡 Click any node to zoom in and edit its milestones • Completed nodes darken automatically
+            </div>
+
+            <!-- SVG Graph Canvas -->
+            <div class="roadmap-svg-container" id="roadmapSvgContainer">
+              <svg id="goalSvgCanvas" class="goal-svg-canvas" viewBox="0 0 960 300" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                  <marker id="goalArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#3B82F6" />
+                  </marker>
+                  <marker id="goalArrowCompleted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#059669" />
+                  </marker>
+                </defs>
+                <g id="goalEdgesGroup"></g>
+                <g id="goalNodesGroup"></g>
+              </svg>
+            </div>
+
+            <!-- Active Zoomed / Selected Node Inspector Drawer -->
+            <div class="node-inspector-drawer hidden" id="nodeInspectorDrawer">
+              <div class="inspector-header">
+                <div class="inspector-title-group">
+                  <span class="inspector-badge" id="inspectorStageBadge">Stage 1</span>
+                  <input type="text" id="inspectorNodeTitleInput" class="inspector-title-input" value="" placeholder="Stage Title" oninput="handleNodeTitleEdit(this.value)">
+                </div>
+                <div class="inspector-header-actions">
+                  <button class="inspector-start-work-btn" id="inspectorStartWorkBtn" onclick="startWorkingOnCurrentStage()" title="Open dedicated workspace and AI chatbot for this stage">
+                    <span>🚀 Start Working on this Stage →</span>
+                  </button>
+                  <button class="inspector-toggle-complete-btn" id="inspectorCompleteBtn" onclick="toggleCurrentNodeCompletion()">
+                    <span>Mark Complete ✓</span>
+                  </button>
+                  <button class="inspector-close-btn" onclick="closeNodeInspector()">✕</button>
+                </div>
+              </div>
+              <div class="inspector-body">
+                <div class="inspector-col">
+                  <label class="inspector-label">Statutory Milestone &amp; Strategy (Editable):</label>
+                  <textarea id="inspectorNodeDescInput" class="inspector-desc-textarea" rows="3" oninput="handleNodeDescEdit(this.value)"></textarea>
+                </div>
+                <div class="inspector-col">
+                  <label class="inspector-label">Statutory Compliance Mandates:</label>
+                  <div class="inspector-mandates-list" id="inspectorMandatesList"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Split Implementation Workspace (When "Implement" is clicked) -->
+          <div class="implementation-workspace-layout hidden" id="implementationWorkspace">
+            <!-- Center Active Task Execution Workspace (In the Middle) -->
+            <div class="impl-center-workspace" id="implCenterWorkspace">
+              <!-- Dynamically populated for active stage -->
+            </div>
+
+            <!-- Right Compact Roadmap Rail (Shifted to the Right Side) -->
+            <div class="impl-right-rail" id="implRightRail">
+              <div class="rail-header">
+                <div class="rail-title">Milestone Roadmap</div>
+                <button class="rail-expand-btn" onclick="exitImplementationMode()" title="Expand Full Diagram">
+                  <span>↗ Full Graph</span>
+                </button>
+              </div>
+              <div class="rail-stepper-list" id="railStepperList">
+                <!-- Dynamically populated mini-nodes -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MENTORSHIP GATEWAY WORKSPACE (PAID TIER: OPTION 3) -->
+      <div class="mentorship-gateway-container hidden" id="mentorshipGatewayContainer">
+        <!-- Top Navigation Bar -->
+        <div class="mentorship-top-bar">
+          <div class="mentorship-top-left">
+            <button class="achieve-back-btn" onclick="openPaidHub()" title="Back to Paid Modules">
+              <span>←</span>
+              <span>Back to Modules</span>
+            </button>
+            <div class="mentorship-badge-title">
+              <span class="mentorship-pill">🏛️ EMPANELED ADVISORS</span>
+              <span class="mentorship-title-text">Official Ministry of Ayush Mentorship Gateway</span>
+            </div>
+          </div>
+          <div class="mentorship-top-right">
+            <button class="achieve-back-btn" onclick="returnToFreeTier()" title="Return to Free Tier">
+              <span>← Free Tier</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Mentorship Content Scroll -->
+        <div class="mentorship-content-scroll">
+          <!-- Hero Section -->
+          <div class="mentor-hero-card">
+            <div class="mentor-hero-inner">
+              <div class="mentor-hero-header">
+                <div class="mentor-hero-tag">
+                  <span class="live-dot-pulse"></span>
+                  <span>Ministry of Ayush Empaneled Senior Statutory Panel</span>
+                </div>
+                <div class="mentor-rating-summary">
+                  <span class="rating-stars">★★★★★</span>
+                  <span class="rating-val">4.92 / 5.0</span>
+                  <span class="rating-count">(654 Consultations)</span>
+                </div>
+              </div>
+
+              <h1 class="mentor-hero-title">1-on-1 Consultation with Empaneled Regulatory Mentors</h1>
+              <p class="mentor-hero-sub">
+                Connect directly with former Senior Controllers of the Indian Patent Office (IPO), State Licensing Authority Directors, and National Biodiversity Authority Legal Counsel. Get authoritative reviews of patent claims, Section 3(p) prior art defenses, Schedule T manufacturing dossiers, and Section 6 ABS agreements.
+              </p>
+
+              <!-- Linked Achieve Goal Roadmap Card (User Request Highlight) -->
+              <div class="mentor-roadmap-sync-banner" id="mentorRoadmapSyncBanner">
+                <div class="sync-banner-left">
+                  <div class="sync-icon-box">📌</div>
+                  <div class="sync-info">
+                    <div class="sync-meta-label">ACTIVE ACHIEVE GOAL ROADMAP LINKED:</div>
+                    <div class="sync-goal-title" id="mentorLinkedRoadmapTitle">Curcumin &amp; Boswellia Arthritis Topical Balm (2/6 Milestones Completed)</div>
+                    <div class="sync-goal-sub" id="mentorLinkedRoadmapSub">Milestone 3 active: NBA Section 6 Prior Approval • Ready for 1-click sharing with mentors</div>
+                  </div>
+                </div>
+                <div class="sync-banner-right">
+                  <button class="sync-switch-goal-btn" onclick="openSwitchRoadmapModal()" title="Select another goal to link">
+                    <span>Switch Roadmap</span>
+                  </button>
+                  <span class="sync-ready-tag">Auto-Attached in Consultations</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category Filter Tabs & Statistics -->
+          <div class="mentor-filter-bar">
+            <div class="mentor-filter-tabs" id="mentorFilterTabs">
+              <button class="mentor-tab active" data-filter="all" onclick="filterMentors('all', this)">
+                All Advisors (<span id="countAllMentors">4</span>)
+              </button>
+              <button class="mentor-tab" data-filter="patent" onclick="filterMentors('patent', this)">
+                ⚖️ Patents &amp; TKDL
+              </button>
+              <button class="mentor-tab" data-filter="licensing" onclick="filterMentors('licensing', this)">
+                📜 Drug Licensing
+              </button>
+              <button class="mentor-tab" data-filter="biodiversity" onclick="filterMentors('biodiversity', this)">
+                🌿 NBA &amp; Biodiversity
+              </button>
+              <button class="mentor-tab" data-filter="pharmacopoeia" onclick="filterMentors('pharmacopoeia', this)">
+                🔬 Pharmacopoeia &amp; Quality
+              </button>
+            </div>
+            <div class="mentor-quick-stats">
+              <span class="stat-pill online-pill"><span class="pulse-dot"></span> <strong id="onlineMentorsCount">2</strong> Online Now</span>
+              <span class="stat-pill booking-pill">📅 <strong id="offlineMentorsCount">2</strong> Booking Open</span>
+            </div>
+          </div>
+
+          <!-- Mentors Grid -->
+          <div class="mentors-grid" id="mentorsGrid">
+            <!-- Dynamically populated mentor cards -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE-OUT SPLIT-SCREEN OFFICIAL GAZETTE VIEWER (APPLE STYLE SHEET) -->
+  <aside class="gazette-slide-panel" id="gazettePanel">
+    <div class="panel-header">
+      <div class="panel-header-info">
+        <span class="panel-emblem">🇮🇳</span>
+        <div>
+          <div class="panel-gov">THE GAZETTE OF INDIA • OFFICIAL STATUTORY RECORD</div>
+          <div class="panel-title" id="panelDocTitle">The Patents Act, 1970 Section 3(p)</div>
+        </div>
+      </div>
+      <button class="panel-close-btn" onclick="closeGazettePanel()">✕</button>
+    </div>
+
+    <div class="panel-meta-bar">
+      <div><strong>Authority:</strong> <span id="panelAuthority">Ministry of Commerce & Industry</span></div>
+      <div><strong>Date:</strong> <span id="panelDate">04 April 2005</span></div>
+      <div><strong>Status:</strong> <span class="status-verified" id="panelStatus">Active & In Force</span></div>
+    </div>
+
+    <div class="panel-body">
+      <div class="verbatim-sheet" id="panelVerbatimText">
+        Loading verbatim text...
+      </div>
+
+      <div class="sha-box-clean">
+        <div class="sha-tag">CRYPTOGRAPHIC INTEGRITY HASH (SHA-256):</div>
+        <code id="panelShaText">8f3b6107a618d361c471c69c6f272a5a54db126e03ea5d8f6d744f47d48348d1</code>
+      </div>
+
+      <div class="panel-external-row" style="margin-top: 14px;">
+        <a id="panelOfficialLink" href="https://ipindia.gov.in" target="_blank" rel="noopener noreferrer" class="panel-gov-link-btn" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #0F172A; color: #FFFFFF; border-radius: 8px; font-size: 12.5px; font-weight: 600; text-decoration: none; transition: background 0.2s;">
+          <span id="panelOfficialLinkText">🏛️ Open Official Government Gazette Document</span>
+          <span style="font-size: 14px;">↗</span>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- FORMULATION SCANNER MODAL (APPLE / NOTHING SHEET) -->
+  <div class="modal-backdrop hidden" id="scannerModal">
+    <div class="modal-sheet-card">
+      <div class="modal-sheet-header">
+        <div class="sheet-title">🔬 Ayush-BioPatent Formulation & TKDL Scanner</div>
+        <button class="modal-close-btn" onclick="closeScannerModal()">✕</button>
+      </div>
+      <div class="modal-sheet-body">
+        <p class="sheet-desc">Deconstruct botanical formulations to detect Section 3(p) Traditional Knowledge overlap and compute patentability defensibility.</p>
+        
+        <div class="form-group-minimal">
+          <label>Select Ingredients:</label>
+          <div class="herb-selector-grid">
+            <label class="herb-chip"><input type="checkbox" value="Curcuma longa (Curcumin)" checked> Curcuma longa (Haldi/Curcumin)</label>
+            <label class="herb-chip"><input type="checkbox" value="Withania somnifera (Ashwagandha)" checked> Withania somnifera (Ashwagandha)</label>
+            <label class="herb-chip"><input type="checkbox" value="Gaultheria procumbens (Gandhapura)" checked> Gaultheria procumbens (Wintergreen)</label>
+            <label class="herb-chip"><input type="checkbox" value="Boswellia serrata (Shallaki)"> Boswellia serrata (Shallaki)</label>
+            <label class="herb-chip"><input type="checkbox" value="Piper nigrum (Maricha)"> Piper nigrum (Black Pepper/Bioenhancer)</label>
+          </div>
+        </div>
+
+        <div class="form-group-minimal">
+          <label>Dosage Technology:</label>
+          <select id="scannerDosageSelect" class="minimal-select" onchange="calcScannerScore()">
+            <option value="Crude Churna (Powder)">Crude Churna (Powder / Traditional Admixture)</option>
+            <option value="Aqueous Extract">Aqueous / Hydroalcoholic Crude Extract</option>
+            <option value="Standardized Supercritical CO2 Extract">Standardized Supercritical CO2 Fraction</option>
+            <option value="Liposomal / Phospholipid Nanocarrier" selected>Liposomal / Phospholipid Nanocarrier (Particle Size < 150nm)</option>
+            <option value="Targeted Phyto-Complex">Targeted Synergistic Phyto-Complex (CI < 0.7)</option>
+          </select>
+        </div>
+
+        <div class="score-card-minimal">
+          <div class="score-row-flex">
+            <span>Patentability Defensibility Score:</span>
+            <span class="score-pct" id="scannerScorePct">89%</span>
+          </div>
+          <div class="score-track-clean">
+            <div class="score-fill-clean" id="scannerScoreFillClean" style="width: 89%;"></div>
+          </div>
+          <div class="score-notes" id="scannerScoreNote">
+            <strong>Workaround Recommendation:</strong> Converting crude powder into a phospholipid nanocarrier demonstrates unexpected bioavailability and overcomes Section 3(e) admixture barriers.
+          </div>
+        </div>
+      </div>
+      <div class="modal-sheet-footer">
+        <button class="btn-cancel" onclick="closeScannerModal()">Close</button>
+        <button class="btn-confirm" onclick="applyScannerToChat()">Apply to New Inquiry</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEDICATED MODEL & API KEY CONFIGURATION MODAL -->
+  <div class="modal-backdrop hidden" id="modelConfigModal">
+    <div class="modal-sheet-card" style="max-width: 540px;">
+      <div class="modal-sheet-header">
+        <div class="sheet-title">🔑 LLM Model &amp; API Key Configuration</div>
+        <button class="modal-close-btn" onclick="closeModelConfigModal()">✕</button>
+      </div>
+      <div class="modal-sheet-body">
+        <!-- 1. LLM Provider Selector -->
+        <div class="form-group-minimal">
+          <label>Select LLM Engine Provider:</label>
+          <div class="provider-tabs-group">
+            <button type="button" class="provider-tab-btn active" id="tabNvidia" onclick="selectLlmProvider('nvidia')">
+              ⚡ NVIDIA NIM
+            </button>
+            <button type="button" class="provider-tab-btn" id="tabOpenai" onclick="selectLlmProvider('openai')">
+              🤖 OpenAI
+            </button>
+            <button type="button" class="provider-tab-btn" id="tabOllama" onclick="selectLlmProvider('ollama')">
+              💻 Ollama (Local)
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Model Selection -->
+        <div class="form-group-minimal">
+          <label>Model Checkpoint:</label>
+          <select id="modalModelDropdown" class="minimal-select" onchange="handleModalModelSelect(this.value)">
+            <!-- Populated dynamically based on active provider -->
+          </select>
+          <div id="customModelWrapper" style="margin-top: 6px; display: none;">
+            <input type="text" id="modalCustomModelInput" class="minimal-input" placeholder="Enter custom model identifier (e.g. gpt-4o, mistral:7b)...">
+          </div>
+          <span class="field-hint" id="modalModelHint">Selected regulatory reasoning model.</span>
+        </div>
+
+        <!-- 3. Dynamic API Key Field -->
+        <div class="form-group-minimal" id="apiKeyFormGroup">
+          <label id="apiKeyLabel">NVIDIA NIM API Key:</label>
+          <input type="password" id="modalApiKeyInput" class="minimal-input" placeholder="nvapi-..." autocomplete="off">
+          <span class="field-hint" id="apiKeyHint">Paste your API key. It will be saved into <code>.env</code>.</span>
+        </div>
+
+        <!-- 4. Ollama Zero-Key Info Card -->
+        <div class="ollama-zero-key-card" id="ollamaZeroKeyCard" style="display: none;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 16px;">🟢</span>
+            <div>
+              <strong style="color: #059669; font-size: 12.5px;">100% Offline &amp; Local (No API Key Required)</strong>
+              <p style="font-size: 11px; color: #64748B; margin: 2px 0 0 0;">
+                Connected to local Ollama daemon on <code>http://localhost:11434</code>. Zero cloud latency or external dependency.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-status-note" id="settingsSaveStatus"></div>
+      </div>
+      <div class="modal-sheet-footer">
+        <button class="btn-cancel" onclick="closeModelConfigModal()">Cancel</button>
+        <button class="btn-confirm" onclick="saveSettings()">Save &amp; Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEDICATED MULTI-AGENT STATEGRAPH ARCHITECTURE MODAL -->
+  <div class="modal-backdrop hidden" id="architectureModal">
+    <div class="modal-sheet-card" style="max-width: 900px;">
+      <div class="modal-sheet-header">
+        <div class="sheet-title">⚡ Multi-Agent StateGraph Architecture (8 Nodes, 12 Edges)</div>
+        <button class="modal-close-btn" onclick="closeArchitectureModal()">✕</button>
+      </div>
+      <div class="modal-sheet-body">
+        <p style="font-size: 12px; color: #64748B; margin-bottom: 14px;">
+          Deterministic statutory consensus graph showing parallel agent fan-out, cross-authority collision detection, and SHA-256 Gazette integrity verification.
+        </p>
+
+        <!-- VISUAL SVG NODE & EDGE GRAPH DIAGRAM -->
+        <div class="arch-diagram-wrapper">
+          <div class="arch-zoom-bar" id="archZoomBar">
+            <span class="arch-zoom-hint" id="archZoomHint">💡 Click any node in diagram or box below to zoom in</span>
+            <button class="btn-reset-zoom hidden" id="archResetZoomBtn" onclick="resetArchZoom()">
+              🔍 Reset Full Graph View (0 0 840 300)
+            </button>
+          </div>
+          <svg class="arch-svg-diagram" id="archSvgCanvas" viewBox="0 0 840 300" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="arr-indigo" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#818CF8"/>
+              </marker>
+              <marker id="arr-amber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#F59E0B"/>
+              </marker>
+              <marker id="arr-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#EF4444"/>
+              </marker>
+              <marker id="arr-emerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#10B981"/>
+              </marker>
+              <marker id="arr-sky" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#38BDF8"/>
+              </marker>
+              <marker id="arr-pink" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#EC4899"/>
+              </marker>
+              <marker id="arr-yellow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#EAB308"/>
+              </marker>
+              <marker id="arr-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#22C55E"/>
+              </marker>
+            </defs>
+
+            <!-- 1. Input & Normalizer -->
+            <g class="arch-svg-node" id="archSvg_inquiry" onclick="zoomArchNode(0, 45, 149)" title="User Query Input">
+              <rect x="10" y="132" width="70" height="34" rx="17" fill="#1E293B" stroke="#475569" stroke-width="1.5"/>
+              <text x="45" y="153" fill="#94A3B8" font-size="11" font-weight="600" text-anchor="middle" font-family="system-ui">Inquiry</text>
+            </g>
+            <path d="M 80 149 L 105 149" stroke="#818CF8" stroke-width="2" marker-end="url(#arr-indigo)"/>
+
+            <g class="arch-svg-node" id="archSvg_1" onclick="zoomArchNode(1, 172, 149)" title="Click to Zoom Node 1: Normalizer">
+              <rect x="105" y="124" width="135" height="50" rx="8" fill="#1E1B4B" stroke="#6366F1" stroke-width="1.5"/>
+              <text x="172" y="145" fill="#EEF2FF" font-size="12" font-weight="700" text-anchor="middle" font-family="system-ui">1. Normalizer</text>
+              <text x="172" y="161" fill="#A5B4FC" font-size="9.5" text-anchor="middle" font-family="system-ui">Dialect &amp; Botanicals</text>
+            </g>
+
+            <!-- 2. Parallel Fan-Out Edges to 4 Agents -->
+            <path d="M 240 149 C 270 149, 260 41, 290 41" stroke="#F59E0B" stroke-width="2" fill="none" marker-end="url(#arr-amber)"/>
+            <path d="M 240 149 C 270 149, 260 113, 290 113" stroke="#EF4444" stroke-width="2" fill="none" marker-end="url(#arr-red)"/>
+            <path d="M 240 149 C 270 149, 260 185, 290 185" stroke="#10B981" stroke-width="2" fill="none" marker-end="url(#arr-emerald)"/>
+            <path d="M 240 149 C 270 149, 260 257, 290 257" stroke="#38BDF8" stroke-width="2" fill="none" marker-end="url(#arr-sky)"/>
+
+            <!-- 3. Four Statutory Parallel Agents -->
+            <!-- Agent 1: IPR -->
+            <g class="arch-svg-node" id="archSvg_2" onclick="zoomArchNode(2, 372, 41)" title="Click to Zoom Node 2: IPRAgent">
+              <rect x="290" y="18" width="165" height="46" rx="8" fill="#451A03" stroke="#F59E0B" stroke-width="1.5"/>
+              <text x="372" y="36" fill="#FEF3C7" font-size="11.5" font-weight="700" text-anchor="middle" font-family="system-ui">⚖️ 2. IPRAgent</text>
+              <text x="372" y="52" fill="#FDE68A" font-size="9.5" text-anchor="middle" font-family="system-ui">Patents Act Section 3(p)/3(e)</text>
+            </g>
+
+            <!-- Agent 2: Biodiversity -->
+            <g class="arch-svg-node" id="archSvg_3" onclick="zoomArchNode(3, 372, 113)" title="Click to Zoom Node 3: BiodiversityAgent">
+              <rect x="290" y="90" width="165" height="46" rx="8" fill="#450A0A" stroke="#EF4444" stroke-width="1.5"/>
+              <text x="372" y="108" fill="#FEE2E2" font-size="11.5" font-weight="700" text-anchor="middle" font-family="system-ui">🌿 3. BiodiversityAgent</text>
+              <text x="372" y="124" fill="#FECACA" font-size="9.5" text-anchor="middle" font-family="system-ui">BD Act Section 6 Form 3 &amp; ABS</text>
+            </g>
+
+            <!-- Agent 3: Ayush -->
+            <g class="arch-svg-node" id="archSvg_4" onclick="zoomArchNode(4, 372, 185)" title="Click to Zoom Node 4: AyushAgent">
+              <rect x="290" y="162" width="165" height="46" rx="8" fill="#064E3B" stroke="#10B981" stroke-width="1.5"/>
+              <text x="372" y="180" fill="#ECFDF5" font-size="11.5" font-weight="700" text-anchor="middle" font-family="system-ui">🏥 4. AyushAgent</text>
+              <text x="372" y="196" fill="#A7F3D0" font-size="9.5" text-anchor="middle" font-family="system-ui">D&amp;C Act Rule 158-B SALA</text>
+            </g>
+
+            <!-- Agent 4: Global Export -->
+            <g class="arch-svg-node" id="archSvg_5" onclick="zoomArchNode(5, 372, 257)" title="Click to Zoom Node 5: GlobalExportAgent">
+              <rect x="290" y="234" width="165" height="46" rx="8" fill="#082F49" stroke="#38BDF8" stroke-width="1.5"/>
+              <text x="372" y="252" fill="#E0F2FE" font-size="11.5" font-weight="700" text-anchor="middle" font-family="system-ui">🌍 5. GlobalExportAgent</text>
+              <text x="372" y="268" fill="#BAE6FD" font-size="9.5" text-anchor="middle" font-family="system-ui">WIPO / US FDA / THMPD</text>
+            </g>
+
+            <!-- 4. Parallel Fan-In Edges to Conflict Matrix -->
+            <path d="M 455 41 C 485 41, 475 149, 505 149" stroke="#F59E0B" stroke-width="2" fill="none" marker-end="url(#arr-pink)"/>
+            <path d="M 455 113 C 480 113, 485 149, 505 149" stroke="#EF4444" stroke-width="2" fill="none" marker-end="url(#arr-pink)"/>
+            <path d="M 455 185 C 480 185, 485 149, 505 149" stroke="#10B981" stroke-width="2" fill="none" marker-end="url(#arr-pink)"/>
+            <path d="M 455 257 C 485 257, 475 149, 505 149" stroke="#38BDF8" stroke-width="2" fill="none" marker-end="url(#arr-pink)"/>
+
+            <!-- 5. Conflict Matrix Node -->
+            <g class="arch-svg-node" id="archSvg_6" onclick="zoomArchNode(6, 577, 149)" title="Click to Zoom Node 6: ConflictMatrix">
+              <rect x="505" y="124" width="145" height="50" rx="8" fill="#500724" stroke="#EC4899" stroke-width="1.5"/>
+              <text x="577" y="145" fill="#FCE7F3" font-size="11.5" font-weight="700" text-anchor="middle" font-family="system-ui">⚡ 6. ConflictMatrix</text>
+              <text x="577" y="161" fill="#FBCFE8" font-size="9.5" text-anchor="middle" font-family="system-ui">Cross-Collision Check</text>
+            </g>
+
+            <!-- 6. Edge to Workaround Lab -->
+            <path d="M 650 141 C 665 141, 660 64, 680 64" stroke="#EAB308" stroke-width="2" fill="none" marker-end="url(#arr-yellow)"/>
+
+            <!-- 7. Workaround Lab Node -->
+            <g class="arch-svg-node" id="archSvg_7" onclick="zoomArchNode(7, 750, 64)" title="Click to Zoom Node 7: WorkaroundLab">
+              <rect x="680" y="41" width="140" height="46" rx="8" fill="#422006" stroke="#EAB308" stroke-width="1.5"/>
+              <text x="750" y="59" fill="#FEF9C3" font-size="11.5" font-weight="700" text-anchor="middle" font-family="system-ui">🔬 7. WorkaroundLab</text>
+              <text x="750" y="75" fill="#FEF08A" font-size="9.5" text-anchor="middle" font-family="system-ui">Nanocarrier &amp; CI&lt;0.8</text>
+            </g>
+
+            <!-- 8. Edge from Workaround to SHA256 Verifier -->
+            <path d="M 750 87 L 750 145" stroke="#22C55E" stroke-width="2" marker-end="url(#arr-green)"/>
+
+            <!-- 9. SHA-256 Verifier Node -->
+            <g class="arch-svg-node" id="archSvg_8" onclick="zoomArchNode(8, 750, 168)" title="Click to Zoom Node 8: SHA256Verifier">
+              <rect x="680" y="145" width="140" height="46" rx="8" fill="#052E16" stroke="#22C55E" stroke-width="1.5"/>
+              <text x="750" y="163" fill="#DCFCE7" font-size="11.5" font-weight="700" text-anchor="middle" font-family="system-ui">🛡️ 8. SHA256Verifier</text>
+              <text x="750" y="179" fill="#BBF7D0" font-size="9.5" text-anchor="middle" font-family="system-ui">Gazette Cryptography</text>
+            </g>
+
+            <!-- 10. Edge to Final Dossier -->
+            <path d="M 750 191 L 750 235" stroke="#818CF8" stroke-width="2" marker-end="url(#arr-indigo)"/>
+
+            <!-- 11. Verified Dossier Output -->
+            <g class="arch-svg-node" id="archSvg_9" onclick="zoomArchNode(9, 750, 253)" title="Click to Zoom Output Dossier">
+              <rect x="675" y="235" width="150" height="36" rx="18" fill="#312E81" stroke="#818CF8" stroke-width="1.5"/>
+              <text x="750" y="258" fill="#EEF2FF" font-size="10.5" font-weight="700" text-anchor="middle" font-family="system-ui">Verified Dossier Output</text>
+            </g>
+          </svg>
+        </div>
+
+        <!-- PART 2: EVERY NODE'S WORK IN ONE LINE IN ONE BOX (AS REQUESTED) -->
+        <div class="arch-section-header">
+          <span class="arch-section-title">Atomic Statutory Work by Each StateGraph Node (Click to Zoom):</span>
+        </div>
+        <div class="arch-nodes-work-list">
+          <!-- Box 1 -->
+          <div class="arch-node-box" id="archBox_1" onclick="zoomArchNode(1, 172, 149)">
+            <span class="arch-node-badge badge-normalizer">1. NormalizerNode</span>
+            <span class="arch-node-desc">Translates vernacular dialect (UPI/SPI/API), resolves Latin binomials, and extracts dosage form.</span>
+            <span class="arch-box-zoom-icon">🔍</span>
+          </div>
+          <!-- Box 2 -->
+          <div class="arch-node-box" id="archBox_2" onclick="zoomArchNode(2, 372, 41)">
+            <span class="arch-node-badge badge-ipr">2. IPRAgentNode</span>
+            <span class="arch-node-desc">Evaluates Section 3(p) traditional knowledge and Section 3(e) mere admixture barriers against TKDL.</span>
+            <span class="arch-box-zoom-icon">🔍</span>
+          </div>
+          <!-- Box 3 -->
+          <div class="arch-node-box" id="archBox_3" onclick="zoomArchNode(3, 372, 113)">
+            <span class="arch-node-badge badge-nba">3. BiodiversityAgentNode</span>
+            <span class="arch-node-desc">Checks Section 6 mandatory NBA Form 3 prior approval and calculates commercial ABS royalty.</span>
+            <span class="arch-box-zoom-icon">🔍</span>
+          </div>
+          <!-- Box 4 -->
+          <div class="arch-node-box" id="archBox_4" onclick="zoomArchNode(4, 372, 185)">
+            <span class="arch-node-badge badge-ayush">4. AyushAgentNode</span>
+            <span class="arch-node-desc">Screens Chapter IV-A and Rule 158-B proof of safety, pilot efficacy, and ASU drug licensing dossiers.</span>
+            <span class="arch-box-zoom-icon">🔍</span>
+          </div>
+          <!-- Box 5 -->
+          <div class="arch-node-box" id="archBox_5" onclick="zoomArchNode(5, 372, 257)">
+            <span class="arch-node-badge badge-export">5. GlobalExportAgentNode</span>
+            <span class="arch-node-desc">Harmonizes domestic formulation with WIPO PCT, US FDA Botanical Guidance, and EU THMPD.</span>
+            <span class="arch-box-zoom-icon">🔍</span>
+          </div>
+          <!-- Box 6 -->
+          <div class="arch-node-box" id="archBox_6" onclick="zoomArchNode(6, 577, 149)">
+            <span class="arch-node-badge badge-conflict">6. ConflictMatrixNode</span>
+            <span class="arch-node-desc">Detects statutory cross-collisions between patent bar, Ayush proprietary license, and biodiversity access.</span>
+            <span class="arch-box-zoom-icon">🔍</span>
+          </div>
+          <!-- Box 7 -->
+          <div class="arch-node-box" id="archBox_7" onclick="zoomArchNode(7, 750, 64)">
+            <span class="arch-node-badge badge-workaround">7. WorkaroundLabNode</span>
+            <span class="arch-node-desc">Synthesizes defensible phospholipid nanocarrier and synergistic index (CI &lt; 0.8) filing roadmaps.</span>
+            <span class="arch-box-zoom-icon">🔍</span>
+          </div>
+          <!-- Box 8 -->
+          <div class="arch-node-box" id="archBox_8" onclick="zoomArchNode(8, 750, 168)">
+            <span class="arch-node-badge badge-verifier">8. SHA256VerifierNode</span>
+            <span class="arch-node-desc">Cryptographically verifies statutory citations against official Government Gazette registry with SHA-256.</span>
+            <span class="arch-box-zoom-icon">🔍</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-sheet-footer">
+        <button class="btn-confirm" onclick="closeArchitectureModal()">Close Architecture</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEB SPEECH API / VOICE TRANSCRIBER OVERLAY -->
+  <div class="modal-backdrop hidden" id="voiceModal">
+    <div class="voice-transcribe-box">
+      <div class="audio-bars" id="voiceAudioBars">
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+      </div>
+      <div class="voice-status" id="voiceStatusText">🎙️ Listening... Speak in English or your native dialect</div>
+      <div class="voice-preview" id="voicePreviewText">Listening for speech...</div>
+      <div style="display: flex; gap: 10px; justify-content: center; margin-top: 18px;">
+        <button class="btn-cancel" onclick="cancelVoiceModal()">Cancel</button>
+        <button class="btn-confirm" onclick="submitVoiceModal()">Search Regulatory Database</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODEL CONTEXT PROTOCOL (MCP) SERVER INSPECTOR MODAL -->
+  <div class="modal-backdrop hidden" id="mcpModal">
+    <div class="modal-sheet-card" style="max-width: 820px;">
+      <div class="modal-sheet-header">
+        <div class="sheet-title">🔌 Model Context Protocol (MCP) Server & Statutory AI Tools</div>
+        <button class="modal-close-btn" onclick="closeMcpModal()">✕</button>
+      </div>
+      <div class="modal-sheet-body">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #EEF2FF; border: 1px solid #C7D2FE; border-radius: 8px; padding: 10px 14px;">
+          <div>
+            <span style="font-weight: 700; color: #3730A3; font-size: 13px;">MCP Server Status:</span>
+            <span style="background: #ECFDF5; color: #059669; font-weight: 700; font-size: 11px; padding: 2px 8px; border-radius: 12px; margin-left: 6px;">🟢 ONLINE & LISTENING</span>
+          </div>
+          <div style="font-size: 11px; color: #4338CA; font-family: monospace;">
+            Protocol: 2024-11-05 (JSON-RPC 2.0 / HTTP SSE)
+          </div>
+        </div>
+
+        <p style="font-size: 12.5px; color: #475569; margin-bottom: 12px;">
+          IP-SAKTI Sahayak exposes its regulatory engine as a standardized <strong>Model Context Protocol (MCP)</strong> server. Any third-party agent (Claude Desktop, Cursor, Antigravity, or custom LLM frameworks) can connect directly via stdio or HTTP API to call these 6 atomic legal tools.
+        </p>
+
+        <!-- Command snippet -->
+        <div style="background: #0F172A; color: #94A3B8; font-family: monospace; font-size: 12px; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px;">
+          <span style="color: #64748B;"># Claude Desktop / Cursor command:</span><br>
+          <span style="color: #38BDF8;">python prototype/backend/mcp_server.py</span>
+        </div>
+
+        <div style="font-size: 12px; font-weight: 700; color: #0F172A; text-transform: uppercase; margin-bottom: 8px;">
+          Standardized MCP Regulatory Tools (Click 'Test Run' to execute live):
+        </div>
+
+        <div class="mcp-tool-grid" id="mcpToolsGrid">
+          <!-- Populated dynamically via JS -->
+        </div>
+
+        <div style="margin-top: 14px;">
+          <div style="font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase;">
+            Live MCP Execution Console Output:
+          </div>
+          <div class="mcp-console-output" id="mcpConsoleOutput">Click 'Test Run' on any MCP tool above to see the real-time JSON-RPC 2.0 response here.</div>
+        </div>
+      </div>
+      <div class="modal-sheet-footer">
+        <button class="btn-confirm" onclick="closeMcpModal()">Close MCP Inspector</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW REGULATORY PROJECT MODAL -->
+  <div class="modal-sheet-backdrop hidden" id="newProjectModal">
+    <div class="modal-sheet-dialog" style="max-width: 580px;">
+      <div class="modal-sheet-header">
+        <div class="modal-header-left">
+          <span class="modal-emblem" style="color: #D97706;">★</span>
+          <div>
+            <div class="modal-title">Create New Regulatory Project</div>
+            <div class="modal-sub">Initialize a dedicated dossier with 6-stage milestone tracking</div>
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="closeNewProjectModal()">✕</button>
+      </div>
+
+      <div class="modal-sheet-body" style="padding: 20px 24px;">
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div>
+            <label style="display:block; font-size:12px; font-weight:600; color:#334155; margin-bottom:4px;">Project Title</label>
+            <input type="text" id="newProjName" class="pro-input-field" placeholder="e.g. Project NeuroVeda-Synergy" value="Project NeuroVeda-Synergy">
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; font-weight:600; color:#334155; margin-bottom:4px;">Applicant Organization / Scholar</label>
+            <input type="text" id="newProjApplicant" class="pro-input-field" placeholder="e.g. MedAyur Phyto Labs Pvt. Ltd." value="MedAyur Phyto Labs Pvt. Ltd.">
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; font-weight:600; color:#334155; margin-bottom:4px;">Botanical Ingredients (Comma separated)</label>
+            <input type="text" id="newProjBotanicals" class="pro-input-field" placeholder="e.g. Brahmi, Shankhpushpi, Ashwagandha" value="Brahmi, Shankhpushpi, Ashwagandha">
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; font-weight:600; color:#334155; margin-bottom:4px;">Target Dosage Form / Nanocarrier</label>
+            <input type="text" id="newProjDosage" class="pro-input-field" placeholder="e.g. Phytosome Phospholipid Complex" value="Phytosome Phospholipid Complex">
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; font-weight:600; color:#334155; margin-bottom:4px;">Target Regulatory Jurisdictions</label>
+            <input type="text" id="newProjMarkets" class="pro-input-field" placeholder="e.g. India (Domestic), WIPO PCT, EU THMPD" value="India (Domestic), WIPO PCT, EU THMPD">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-sheet-footer">
+        <button class="action-btn-secondary" onclick="closeNewProjectModal()">Cancel</button>
+        <button class="action-btn-primary" onclick="submitNewProject()">Create Project &amp; Roadmap</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1-ON-1 DIRECT CONSULTATION CHAT MODAL / DRAWER -->
+  <div class="modal-backdrop hidden" id="mentorChatModal">
+    <div class="mentor-chat-window">
+      <!-- Modal Header -->
+      <div class="mentor-chat-header">
+        <div class="mentor-chat-header-left">
+          <div class="mentor-header-avatar-wrap">
+            <img id="mentorChatAvatar" src="/static/assets/mentor_shastri.jpg" alt="Mentor" class="mentor-chat-avatar-img">
+            <span class="mentor-chat-online-beacon" id="mentorChatBeacon"></span>
+          </div>
+          <div>
+            <div class="mentor-chat-header-name" id="mentorChatName">Dr. Anand V. Shastri</div>
+            <div class="mentor-chat-header-sub" id="mentorChatSub">Former Senior Controller of Patents &amp; Designs • IPO</div>
+          </div>
+        </div>
+        <div class="mentor-chat-header-right">
+          <span class="mentor-status-tag-pill" id="mentorChatStatusPill">ONLINE NOW</span>
+          <button class="modal-close-btn" onclick="closeMentorChatModal()">✕</button>
+        </div>
+      </div>
+
+      <!-- Pinned Roadmap Attachment Bar -->
+      <div class="mentor-chat-roadmap-bar" id="mentorChatRoadmapBar">
+        <div class="chat-roadmap-left">
+          <span class="roadmap-pin-icon">📌</span>
+          <div class="chat-roadmap-meta">
+            <span class="chat-roadmap-label">LINKED ACHIEVE GOAL ROADMAP:</span>
+            <strong class="chat-roadmap-name" id="mentorChatRoadmapName">Curcumin &amp; Boswellia Arthritis Topical Balm (2/6 Completed)</strong>
+          </div>
+        </div>
+        <button class="chat-roadmap-share-btn" id="mentorChatShareRoadmapBtn" onclick="shareActiveRoadmapInChat()">
+          <span>📎 Share Roadmap with Mentor</span>
+        </button>
+      </div>
+
+      <!-- Chat Thread Messages -->
+      <div class="mentor-chat-body" id="mentorChatBody">
+        <!-- Messages appended dynamically -->
+      </div>
+
+      <!-- Quick Prompt Suggestion Chips -->
+      <div class="mentor-chat-chips" id="mentorChatChips">
+        <!-- Dynamically rendered based on mentor domain -->
+      </div>
+
+      <!-- Input Dock -->
+      <div class="mentor-chat-footer">
+        <div class="mentor-chat-input-wrapper">
+          <textarea 
+            id="mentorChatInput" 
+            class="mentor-chat-textarea" 
+            rows="1" 
+            placeholder="Type your statutory consultation message or question for the mentor..." 
+            onkeydown="handleMentorChatInputKey(event)"></textarea>
+          <button class="mentor-chat-send-btn" id="mentorChatSendBtn" onclick="sendMentorChatMessage()" title="Send Consultation Message">
+            <span>↑</span>
+          </button>
+        </div>
+        <div class="mentor-chat-dock-disclaimer">
+          Official statutory advisory under Ministry of Ayush expert empaneled scheme. Grounded against gazette rules.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCHEDULE A MEET MODAL -->
+  <div class="modal-backdrop hidden" id="mentorScheduleModal">
+    <div class="modal-sheet-card" style="max-width: 560px;">
+      <div class="modal-sheet-header">
+        <div class="sheet-title" style="display: flex; align-items: center; gap: 8px;">
+          <span>📅</span>
+          <span>Schedule 1-on-1 Consultation</span>
+        </div>
+        <button class="modal-close-btn" onclick="closeMentorScheduleModal()">✕</button>
+      </div>
+
+      <div class="modal-sheet-body" style="padding: 20px 24px;">
+        <!-- Mentor Info Strip -->
+        <div class="sched-mentor-summary">
+          <img id="schedMentorAvatar" src="/static/assets/mentor_sen.jpg" alt="Mentor" class="sched-avatar-img">
+          <div class="sched-mentor-details">
+            <div class="sched-mentor-name" id="schedMentorName">Adv. Vikramaditya Sen</div>
+            <div class="sched-mentor-desig" id="schedMentorDesig">Senior Legal Counsel, National Biodiversity Authority Panel</div>
+            <div class="sched-mentor-domain" id="schedMentorDomain">Domain: NBA &amp; Biodiversity • Access &amp; Benefit Sharing</div>
+          </div>
+        </div>
+
+        <!-- Date Picker -->
+        <div class="form-group-minimal" style="margin-top: 16px;">
+          <label>Select Consultation Date:</label>
+          <div class="sched-date-grid">
+            <button type="button" class="sched-date-btn active" data-date="today" onclick="selectSchedDate(this, '2026-09-10')">
+              <span class="sched-date-day">Today</span>
+              <span class="sched-date-num">10 Sep</span>
+            </button>
+            <button type="button" class="sched-date-btn" data-date="tomorrow" onclick="selectSchedDate(this, '2026-09-11')">
+              <span class="sched-date-day">Tomorrow</span>
+              <span class="sched-date-num">11 Sep</span>
+            </button>
+            <button type="button" class="sched-date-btn" data-date="dayafter" onclick="selectSchedDate(this, '2026-09-12')">
+              <span class="sched-date-day">Saturday</span>
+              <span class="sched-date-num">12 Sep</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Time Slot Picker -->
+        <div class="form-group-minimal" style="margin-top: 14px;">
+          <label>Select Available Time Slot (IST):</label>
+          <div class="sched-slot-grid">
+            <button type="button" class="sched-slot-btn" onclick="selectSchedSlot(this, '10:30 AM')">10:30 AM</button>
+            <button type="button" class="sched-slot-btn" onclick="selectSchedSlot(this, '02:00 PM')">02:00 PM</button>
+            <button type="button" class="sched-slot-btn active" onclick="selectSchedSlot(this, '04:30 PM')">04:30 PM</button>
+            <button type="button" class="sched-slot-btn" onclick="selectSchedSlot(this, '06:00 PM')">06:00 PM</button>
+          </div>
+        </div>
+
+        <!-- Topic of Consultation -->
+        <div class="form-group-minimal" style="margin-top: 14px;">
+          <label>Consultation Subject / Focus:</label>
+          <input type="text" id="schedTopicInput" class="minimal-input" value="Ayush Statutory Consultation" placeholder="e.g. Section 6 NBA Form III Filing &amp; ABS Ex-Factory Royalty Guidance">
+        </div>
+
+        <!-- Roadmap Attachment Checkbox (Key Feature) -->
+        <div class="sched-roadmap-attachment-box" style="margin-top: 14px;">
+          <label class="sched-checkbox-label">
+            <input type="checkbox" id="schedAttachRoadmapCheck" checked>
+            <div class="sched-checkbox-text">
+              <strong>Attach Active Achieve Goal Roadmap</strong>
+              <div class="sched-checkbox-sub" id="schedAttachedRoadmapLabel">
+                Includes milestones, completed stages (2/6), and active statutory requirements for mentor review before the meeting.
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Notes for Mentor -->
+        <div class="form-group-minimal" style="margin-top: 14px;">
+          <label>Notes or Specific Questions for Mentor (Optional):</label>
+          <textarea id="schedNotesInput" class="minimal-input" rows="2" placeholder="Describe any urgent statutory deadlines, rejection notices, or specific queries..."></textarea>
+        </div>
+
+        <!-- Booking Result Container (hidden until booked) -->
+        <div class="sched-confirmation-box hidden" id="schedConfirmationBox">
+          <!-- Rendered on success -->
+        </div>
+      </div>
+
+      <div class="modal-sheet-footer" id="schedModalFooter">
+        <button class="btn-cancel" onclick="closeMentorScheduleModal()">Cancel</button>
+        <button class="btn-confirm" id="confirmSchedBtn" onclick="confirmMeetingBooking()">
+          Confirm Booking (Included in Paid Tier)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSTANT LIVE CONSULTATION CONNECT MODAL -->
+  <div class="modal-backdrop hidden" id="mentorConnectModal">
+    <div class="modal-sheet-card connect-call-card">
+      <div class="modal-sheet-header connect-call-header">
+        <div class="sheet-title" style="display: flex; align-items: center; gap: 8px; color: #0F172A;">
+          <span class="live-blink-dot"></span>
+          <span>Ayush Secure Tele-Advisory Session</span>
+        </div>
+        <button class="modal-close-btn" onclick="closeMentorConnectModal()">✕</button>
+      </div>
+
+      <div class="modal-sheet-body connect-call-body">
+        <!-- Connecting Animation & State -->
+        <div class="call-stage-connecting" id="callStageConnecting">
+          <div class="call-avatar-container">
+            <div class="call-ripple-ring ring-1"></div>
+            <div class="call-ripple-ring ring-2"></div>
+            <img id="callMentorAvatar" src="/static/assets/mentor_shastri.jpg" alt="Mentor" class="call-avatar-img">
+          </div>
+          <h2 class="call-mentor-name" id="callMentorName">Dr. Anand V. Shastri</h2>
+          <div class="call-mentor-title" id="callMentorTitle">Former Senior Controller of Patents &amp; Designs • IPO</div>
+          <div class="call-status-badge">
+            <span class="pulse-call-dot"></span>
+            <span id="callStatusMessage">Establishing Encrypted Statutory Audio/Video Link...</span>
+          </div>
+          <div class="call-sec-note">
+            🛡️ Ministry of Ayush 256-Bit Encrypted Statutory Advisory Line
+          </div>
+        </div>
+
+        <!-- Connected Live Session Screen -->
+        <div class="call-stage-connected hidden" id="callStageConnected">
+          <div class="call-live-layout">
+            <!-- Left: Video Feeds & Controls -->
+            <div class="call-video-grid">
+              <div class="call-feed mentor-feed">
+                <img id="callLiveMentorAvatar" src="/static/assets/mentor_shastri.jpg" alt="Mentor" class="call-feed-img">
+                <div class="feed-overlay">
+                  <span class="feed-name" id="callFeedName">Dr. Anand V. Shastri</span>
+                  <span class="feed-mic-active">🎤 Active</span>
+                </div>
+              </div>
+              <div class="call-feed user-feed">
+                <div class="user-camera-placeholder">
+                  <span>👤</span>
+                  <span class="feed-name">You (Applicant)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Real-time Consultation Dossier & Milestones Review Pane -->
+            <div class="call-side-dossier">
+              <div class="side-dossier-header">
+                <span style="color:#2563EB;">📌</span>
+                <strong>Live Shared Milestone Review</strong>
+              </div>
+              <div class="side-dossier-content" id="callSharedRoadmapContent">
+                <!-- Populated with linked roadmap milestones -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Call Action Dock -->
+          <div class="call-controls-bar">
+            <div class="call-timer-box">
+              <span>⏱️ Live: </span>
+              <strong id="callTimerDisplay">00:00</strong>
+            </div>
+            <div class="call-actions-group">
+              <button class="call-control-btn active" id="btnToggleMic" onclick="toggleCallMic()" title="Mute/Unmute Mic">
+                <span>🎙️</span>
+              </button>
+              <button class="call-control-btn active" id="btnToggleCam" onclick="toggleCallCam()" title="Start/Stop Video">
+                <span>📹</span>
+              </button>
+              <button class="call-end-btn" onclick="endInstantConsultation()" title="End Consultation">
+                <span>🔴 End Consultation</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SWITCH LINKED ROADMAP MODAL -->
+  <div class="modal-backdrop hidden" id="switchRoadmapModal">
+    <div class="modal-sheet-card" style="max-width: 520px;">
+      <div class="modal-sheet-header">
+        <div class="sheet-title">📌 Switch Active Goal Roadmap</div>
+        <button class="modal-close-btn" onclick="closeSwitchRoadmapModal()">✕</button>
+      </div>
+      <div class="modal-sheet-body" style="padding: 18px 22px;">
+        <p class="sheet-desc" style="margin-bottom: 14px;">
+          Select which Achieve Goal milestone roadmap you want linked and shared with Ministry of Ayush mentors:
+        </p>
+        <div class="switch-roadmaps-list" id="switchRoadmapsList">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+      <div class="modal-sheet-footer">
+        <button class="btn-cancel" onclick="closeSwitchRoadmapModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js?v=23"></script>
+</body>
+</html>
