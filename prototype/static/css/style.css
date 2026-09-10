@@ -294,6 +294,179 @@ html, body {
   overflow: hidden;
 }
 
+/* ===================================================
+   AYUSH BOTANICAL HERBAL BACKGROUND (Subtle & Live)
+   =================================================== */
+.ayush-live-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+/* Ambient Botanical Radiance (Soft herbal auras, never dark) */
+.ayush-glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(70px);
+}
+
+.glow-emerald {
+  top: 4%;
+  right: 6%;
+  width: 540px;
+  height: 540px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.015) 50%, transparent 70%);
+  animation: glowBreathe 18s ease-in-out infinite alternate;
+}
+
+.glow-gold {
+  bottom: 10%;
+  left: 5%;
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, rgba(217, 119, 6, 0.035) 0%, rgba(245, 158, 11, 0.01) 50%, transparent 70%);
+  animation: glowBreathe 22s ease-in-out infinite alternate 3s;
+}
+
+/* Leaf Clusters & Live Movements */
+.ayush-leaf-cluster {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+}
+
+.ayush-leaf-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 2px 10px rgba(16, 185, 129, 0.04));
+}
+
+/* 1. Sacred Tulsi Leaf (Top-Right Live Floating) */
+.leaf-top-right {
+  top: 40px;
+  right: 25px;
+  width: 220px;
+  height: 300px;
+  transform-origin: bottom center;
+  animation: liveTulsiSway 20s ease-in-out infinite;
+}
+
+@keyframes liveTulsiSway {
+  0% {
+    transform: rotate(15deg) translate(0, 0);
+  }
+  50% {
+    transform: rotate(22deg) translate(-12px, 16px);
+  }
+  100% {
+    transform: rotate(15deg) translate(0, 0);
+  }
+}
+
+/* 2. Ayurvedic Neem Sprig (Bottom-Left Live Swaying) */
+.leaf-bottom-left {
+  bottom: 70px;
+  left: 20px;
+  width: 240px;
+  height: 280px;
+  transform-origin: bottom left;
+  animation: liveNeemSway 24s ease-in-out infinite;
+}
+
+@keyframes liveNeemSway {
+  0% {
+    transform: rotate(-16deg) translate(0, 0);
+  }
+  50% {
+    transform: rotate(-8deg) translate(14px, -10px);
+  }
+  100% {
+    transform: rotate(-16deg) translate(0, 0);
+  }
+}
+
+/* 3. Ashwagandha Healing Leaf (Mid-Right Gentle Floating) */
+.leaf-mid-right {
+  top: 46%;
+  right: 45px;
+  width: 175px;
+  height: 235px;
+  transform-origin: center;
+  animation: liveAshwaSway 26s ease-in-out infinite;
+}
+
+@keyframes liveAshwaSway {
+  0% {
+    transform: rotate(-12deg) scale(0.95);
+  }
+  50% {
+    transform: rotate(-4deg) scale(1.04) translate(8px, -12px);
+  }
+  100% {
+    transform: rotate(-12deg) scale(0.95);
+  }
+}
+
+/* 4. Subtle Drifting Leaf 1 */
+.leaf-drift-1 {
+  top: 22%;
+  left: 12%;
+  width: 80px;
+  height: 115px;
+  animation: liveDrift1 30s ease-in-out infinite alternate;
+}
+
+@keyframes liveDrift1 {
+  0% {
+    transform: translate(0, 0) rotate(10deg);
+  }
+  50% {
+    transform: translate(28px, -32px) rotate(24deg);
+  }
+  100% {
+    transform: translate(-18px, 22px) rotate(6deg);
+  }
+}
+
+/* 5. Herbal Gold Accent Leaflet */
+.leaf-drift-2 {
+  bottom: 30%;
+  right: 16%;
+  width: 70px;
+  height: 100px;
+  animation: liveDrift2 34s ease-in-out infinite alternate 4s;
+}
+
+@keyframes liveDrift2 {
+  0% {
+    transform: translate(0, 0) rotate(-16deg);
+  }
+  50% {
+    transform: translate(-22px, 28px) rotate(-6deg);
+  }
+  100% {
+    transform: translate(18px, -16px) rotate(-22deg);
+  }
+}
+
+@keyframes glowBreathe {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.09);
+  }
+}
+
 /* Top Header */
 /* Top Header */
 .chat-header {
@@ -410,6 +583,8 @@ html, body {
   flex-direction: column;
   align-items: center;
   padding: 24px 20px 140px 20px;
+  position: relative;
+  z-index: 1;
 }
 
 /* Empty State Hero */
@@ -2613,7 +2788,7 @@ html, body {
   flex: 1;
   overflow-y: auto;
   padding: 40px 24px;
-  background: #FFFFFF;
+  background: transparent;
   color: var(--text-black);
   width: 100%;
   display: flex;
@@ -2621,6 +2796,8 @@ html, body {
   align-items: center;
   justify-content: center;
   min-height: calc(100vh - 52px);
+  position: relative;
+  z-index: 1;
 }
 
 .paid-hero-header {
@@ -2793,8 +2970,10 @@ html, body {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  background: #FFFFFF;
+  background: transparent;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .achieve-top-bar {
@@ -4784,8 +4963,10 @@ html, body {
   flex-direction: column;
   width: 100%;
   height: 100vh;
-  background: #F8FAFC;
+  background: transparent;
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .mentorship-top-bar {
