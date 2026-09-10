@@ -13,6 +13,9 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchConfig();
   renderSavedChatsSidebar();
   setupUniversalModalListeners();
+  initTheme();
+  initLanguage();
+  initSources();
 });
 
 // Universal Modal Dismissal (Click Outside Backdrop & Escape Key)
@@ -3858,5 +3861,567 @@ async function submitNewProject() {
     alert("Failed to create project.");
   }
 }
+
+/* ===================================================
+   NOTIFICATION TOAST HELPER
+   =================================================== */
+function showNotificationToast(msg) {
+  let toast = document.getElementById("ayushNotificationToast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "ayushNotificationToast";
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #0F172A;
+      color: #FFFFFF;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 500;
+      z-index: 99999;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+      border: 1px solid rgba(255,255,255,0.1);
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = msg;
+  toast.style.opacity = "1";
+  toast.style.transform = "translateY(0)";
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(10px)";
+  }, 2400);
+}
+
+/* ===================================================
+   DARK MODE & LIGHT MODE TOGGLE (SETTINGS MODAL)
+   =================================================== */
+function toggleTheme() {
+  const isDark = document.body.classList.toggle("dark-mode");
+  const btnText = document.getElementById("themeToggleText");
+  const btnIcon = document.getElementById("themeToggleIcon");
+  
+  if (isDark) {
+    if (btnText) btnText.textContent = "Switch to Light Mode";
+    if (btnIcon) btnIcon.textContent = "☀️";
+    localStorage.setItem("ayush_theme", "dark");
+    showNotificationToast("🌙 Switched to Dark Mode");
+  } else {
+    if (btnText) btnText.textContent = "Switch to Dark Mode";
+    if (btnIcon) btnIcon.textContent = "🌙";
+    localStorage.setItem("ayush_theme", "light");
+    showNotificationToast("☀️ Switched to Light Mode");
+  }
+}
+
+function initTheme() {
+  const saved = localStorage.getItem("ayush_theme");
+  const btnText = document.getElementById("themeToggleText");
+  const btnIcon = document.getElementById("themeToggleIcon");
+  
+  if (saved === "dark") {
+    document.body.classList.add("dark-mode");
+    if (btnText) btnText.textContent = "Switch to Light Mode";
+    if (btnIcon) btnIcon.textContent = "☀️";
+  } else {
+    document.body.classList.remove("dark-mode");
+    if (btnText) btnText.textContent = "Switch to Dark Mode";
+    if (btnIcon) btnIcon.textContent = "🌙";
+  }
+}
+
+/* ===================================================
+   LANGUAGE SWITCH TOGGLE (ENGLISH / HINDI)
+   =================================================== */
+let currentAyushLanguage = "en";
+
+function toggleLanguage() {
+  currentAyushLanguage = (currentAyushLanguage === "en") ? "hi" : "en";
+  localStorage.setItem("ayush_language", currentAyushLanguage);
+  updateLanguageUI();
+}
+
+function updateLanguageUI() {
+  const langBtn = document.getElementById("headerLangBtn");
+  const langLabel = document.getElementById("headerLangLabel");
+  const promptInput = document.getElementById("userPromptInput");
+
+  if (currentAyushLanguage === "hi") {
+    if (langLabel) langLabel.textContent = "🌐 हिंदी";
+    if (langBtn) {
+      langBtn.classList.add("hindi-active");
+      langBtn.setAttribute("title", "भाषा बदलें (वर्तमान: हिंदी / अंग्रेजी के लिए क्लिक करें)");
+    }
+    if (promptInput) {
+      promptInput.setAttribute("placeholder", "आयुष फॉर्मूलेशन, पेटेंट (धारा 3(p)), राज्य लाइसेंसिंग या अनुपालन प्रश्न पूछें...");
+    }
+    showNotificationToast("🌐 भाषा बदली गई: हिंदी (Vernacular Mode Active)");
+  } else {
+    if (langLabel) langLabel.textContent = "🌐 EN / हिंदी";
+    if (langBtn) {
+      langBtn.classList.remove("hindi-active");
+      langBtn.setAttribute("title", "Switch Language (Current: English / Click for Hindi)");
+    }
+    if (promptInput) {
+      promptInput.setAttribute("placeholder", "Ask any Ayush formulation, patent, or compliance query...");
+    }
+    showNotificationToast("🌐 Language switched: English");
+  }
+}
+
+function initLanguage() {
+  const saved = localStorage.getItem("ayush_language");
+  if (saved) {
+    currentAyushLanguage = saved;
+    updateLanguageUI();
+  }
+}
+
+/* ===================================================
+   VERIFIED STATUTORY & REGULATORY SOURCES DIRECTORY
+   =================================================== */
+const AYUSH_SOURCES_CATALOG = [
+  // 1. Central Authorities & Statutory Databases
+  {
+    id: "central-ayush",
+    name: "Ministry of Ayush (Govt. of India)",
+    domain: "ayush.gov.in",
+    url: "https://ayush.gov.in",
+    category: "central",
+    categoryLabel: "Central Government",
+    badgeClass: "badge-central",
+    icon: "🏛️",
+    scope: "Nodal Union Ministry — ASU Gazettes, Notifications & Policies",
+    description: "The supreme union executive authority governing Ayurveda, Yoga, Unani, Siddha, and Homoeopathy statutory orders, National Ayush Mission guidelines, and central regulatory directives."
+  },
+  {
+    id: "central-pcimh",
+    name: "PCIM&H (Pharmacopoeia Commission)",
+    domain: "pcimh.gov.in",
+    url: "https://pcimh.gov.in",
+    category: "central",
+    categoryLabel: "Central Statutory Body",
+    badgeClass: "badge-central",
+    icon: "📜",
+    scope: "Ayurvedic, Siddha, Unani & Homoeopathic Pharmacopoeias & Formularies",
+    description: "Statutory body establishing official pharmacopoeial monographs (API, UPI, SPI, HPI), classical shelf-life rules (Rule 161-B), TLC/HPTLC identity standards, and the Ayurvedic Formulary of India (AFI)."
+  },
+  {
+    id: "central-ipindia",
+    name: "IP India / CGPDTM (Patents & Trademarks)",
+    domain: "ipindia.gov.in",
+    url: "https://ipindia.gov.in",
+    category: "central",
+    categoryLabel: "Central Patent Office",
+    badgeClass: "badge-central",
+    icon: "⚖️",
+    scope: "Patents Act 1970 — Section 3(p) & Section 3(e) Examination Guidelines",
+    description: "Controller General of Patents, Designs and Trade Marks guidelines for patenting traditional knowledge, botanical innovations, Section 3(p) non-patentability bars, and prior art searches."
+  },
+  {
+    id: "central-nba",
+    name: "National Biodiversity Authority (NBA India)",
+    domain: "nbaindia.org",
+    url: "https://nbaindia.org",
+    category: "central",
+    categoryLabel: "Central Statutory Body",
+    badgeClass: "badge-central",
+    icon: "🌱",
+    scope: "Biological Diversity Act 2002 — Section 3 & 6 Prior Approval (Form I / III)",
+    description: "Autonomous central authority regulating access to Indian biological resources, mandatory Form 3 IPR approvals before patent grant, and commercial Access & Benefit Sharing (ABS) compliance."
+  },
+  {
+    id: "central-cdsco",
+    name: "CDSCO (Central Drugs Standard Control)",
+    domain: "cdsco.gov.in",
+    url: "https://cdsco.gov.in",
+    category: "central",
+    categoryLabel: "Central Drug Regulator",
+    badgeClass: "badge-central",
+    icon: "🔬",
+    scope: "Drugs & Cosmetics Act 1940 — ASU Rules & Clinical Trials",
+    description: "National regulatory authority for pharmaceutical standards, Section 33P ASU safety advisory notifications, Form 25D manufacturing parameters, and clinical trial regulations (CT-04 / CT-06)."
+  },
+  {
+    id: "central-tkdl",
+    name: "CSIR-TKDL (Traditional Knowledge Digital Library)",
+    domain: "tkdl.res.in",
+    url: "https://tkdl.res.in",
+    category: "central",
+    categoryLabel: "CSIR & Ayush Repository",
+    badgeClass: "badge-central",
+    icon: "🛡️",
+    scope: "34 Million Pages of Classical Sanskrit/Tamil/Urdu Defense Prior Art",
+    description: "Pioneering Indian digital knowledge repository translating classical medical treatises into five international languages to prevent wrongful patenting of traditional Indian formulations worldwide."
+  },
+  {
+    id: "central-fssai",
+    name: "FSSAI (Food Safety & Standards Authority)",
+    domain: "fssai.gov.in",
+    url: "https://fssai.gov.in",
+    category: "central",
+    categoryLabel: "Central Food Regulator",
+    badgeClass: "badge-central",
+    icon: "🥗",
+    scope: "Nutraceutical, Health Supplement & Ayush Aahar Regulations 2022",
+    description: "Apex food safety regulator governing botanicals classified as dietary supplements, botanical permissible extraction limits, purity monographs, and Ayush Aahar co-labeling rules."
+  },
+  {
+    id: "central-eaushadhi",
+    name: "e-Aushadhi / Ayush Grid Portal",
+    domain: "eaushadhi.gov.in",
+    url: "https://eaushadhi.gov.in",
+    category: "central",
+    categoryLabel: "Central Digital Registry",
+    badgeClass: "badge-central",
+    icon: "💻",
+    scope: "National Supply Chain & Statutory Drug Batch Verification",
+    description: "Ministry of Ayush central digital backbone for supply chain tracking, drug inspection reporting, raw material batch quality assurance, and licensed ASU manufacturer verification."
+  },
+
+  // 2. State Ayush Licensing Authorities (SALA)
+  {
+    id: "state-gujarat",
+    name: "Gujarat FDCA (Food & Drugs Control Administration)",
+    domain: "fdca.gujarat.gov.in",
+    url: "https://fdca.gujarat.gov.in",
+    category: "state",
+    categoryLabel: "State Licensing Authority",
+    badgeClass: "badge-state",
+    icon: "📍",
+    scope: "Form 25D Manufacturing Licenses, Schedule T GMP & CoPP Certificates",
+    description: "Pioneering state licensing authority offering online DLA licensing, Schedule T Good Manufacturing Practice audits, Certificate of Pharmaceutical Product (CoPP), and export endorsements."
+  },
+  {
+    id: "state-kerala",
+    name: "Kerala State Drugs Control Department (Ayush Wing)",
+    domain: "drugscontrol.kerala.gov.in",
+    url: "https://drugscontrol.kerala.gov.in",
+    category: "state",
+    categoryLabel: "State Licensing Authority",
+    badgeClass: "badge-state",
+    icon: "📍",
+    scope: "Classical Ayurvedic Form 25D / 26D Renewals & Phyto-Sanitary Testing",
+    description: "State drug controller for the renowned Kerala Ayurvedic sector, regulating traditional Kashayams, Arishtams, Form 25D commercial manufacturing, and official drug testing laboratories."
+  },
+  {
+    id: "state-delhi",
+    name: "Directorate of AYUSH, Govt. of NCT of Delhi",
+    domain: "delhi.gov.in",
+    url: "https://delhi.gov.in",
+    category: "state",
+    categoryLabel: "State Licensing Authority",
+    badgeClass: "badge-state",
+    icon: "📍",
+    scope: "UT ASU Drug Manufacturing Clearances & Institutional Approvals",
+    description: "Government of NCT of Delhi state licensing directorate regulating ASU pharmaceutical factories, hospital formularies, and urban wholesale/retail distribution compliance."
+  },
+  {
+    id: "state-up",
+    name: "Uttar Pradesh AYUSH Department",
+    domain: "ayush.up.gov.in",
+    url: "https://ayush.up.gov.in",
+    category: "state",
+    categoryLabel: "State Licensing Authority",
+    badgeClass: "badge-state",
+    icon: "📍",
+    scope: "State ASU Manufacturing Licenses, Raw Herb Quarantine & Form 25D",
+    description: "Largest northern state regulatory directorate overseeing classical pharmacy approvals, botanical cultivation quarantine clearances, and commercial GMP inspection compliance."
+  },
+  {
+    id: "state-tamilnadu",
+    name: "Tamil Nadu Directorate of Indian Medicine (IMCOPS)",
+    domain: "tn.gov.in",
+    url: "https://tn.gov.in",
+    category: "state",
+    categoryLabel: "State Licensing Authority",
+    badgeClass: "badge-state",
+    icon: "📍",
+    scope: "Siddha, Ayurveda & Unani Manufacturing Licenses & Classical Formulations",
+    description: "Custodian of Siddha medicine manufacturing licenses, classical Palm Leaf manuscript formulations, Form 25D approvals, and the Tamil Nadu State Medicinal Plants Board."
+  },
+  {
+    id: "state-maharashtra",
+    name: "Maharashtra FDA (Ayush Division)",
+    domain: "fda.maharashtra.gov.in",
+    url: "https://fda.maharashtra.gov.in",
+    category: "state",
+    categoryLabel: "State Licensing Authority",
+    badgeClass: "badge-state",
+    icon: "📍",
+    scope: "Schedule T GMP Compliance, Stability Studies & Industrial Phyto-Pharma",
+    description: "Premier industrial licensing regulator overseeing ASU pharmaceutical manufacturing clusters, raw material heavy metal testing, and accelerated stability study clearances."
+  },
+  {
+    id: "state-karnataka",
+    name: "Karnataka Directorate of AYUSH",
+    domain: "ayush.karnataka.gov.in",
+    url: "https://ayush.karnataka.gov.in",
+    category: "state",
+    categoryLabel: "State Licensing Authority",
+    badgeClass: "badge-state",
+    icon: "📍",
+    scope: "Form 25D Drug Controller & State Biodiversity Board Coordination",
+    description: "State licensing authority supervising Western Ghats botanical biodiversity permits, modern phyto-formulation licenses, and ASU analytical lab approvals."
+  },
+
+  // 3. WIPO & Foreign / International Regimes
+  {
+    id: "wipo-igc",
+    name: "WIPO (World Intellectual Property Organization)",
+    domain: "wipo.int",
+    url: "https://www.wipo.int",
+    category: "wipo",
+    categoryLabel: "Global IP Organization",
+    badgeClass: "badge-wipo",
+    icon: "🌍",
+    scope: "Intergovernmental Committee on Traditional Knowledge & Genetic Resources",
+    description: "Geneva-based UN agency leading international treaties on Intellectual Property, Genetic Resources, and Traditional Knowledge (IGC), preventing defensive patent misappropriation."
+  },
+  {
+    id: "uspto-gov",
+    name: "USPTO (United States Patent and Trademark Office)",
+    domain: "uspto.gov",
+    url: "https://www.uspto.gov",
+    category: "wipo",
+    categoryLabel: "United States Patent Office",
+    badgeClass: "badge-wipo",
+    icon: "🇺🇸",
+    scope: "35 U.S.C. 102/103 Prior Art Scrutiny & TKDL Collaboration Database",
+    description: "Official US patent registry utilizing Indian TKDL prior art access agreement to reject obvious patent applications claiming traditional botanical remedies."
+  },
+  {
+    id: "fda-botanical",
+    name: "US FDA Botanical Guidance for Industry",
+    domain: "fda.gov",
+    url: "https://www.fda.gov",
+    category: "wipo",
+    categoryLabel: "United States Drug Regulator",
+    badgeClass: "badge-wipo",
+    icon: "🇺🇸",
+    scope: "Botanical Drug Development Guidance — IND / NDA Batch Consistency",
+    description: "Food and Drug Administration guidance specifying quality, chemistry, manufacturing, controls (CMC), and multi-batch fingerprinting for complex herbal and polyherbal extracts."
+  },
+  {
+    id: "ema-thmpd",
+    name: "EMA / HMPC (European Medicines Agency)",
+    domain: "ema.europa.eu",
+    url: "https://www.ema.europa.eu",
+    category: "wipo",
+    categoryLabel: "European Union Regulator",
+    badgeClass: "badge-wipo",
+    icon: "🇪🇺",
+    scope: "Directive 2004/24/EC Traditional Herbal Medicinal Products (THMPD)",
+    description: "European Committee on Herbal Medicinal Products monographs establishing 30-year bibliographic traditional use rules (15 years within EU) for herbal registration."
+  },
+  {
+    id: "uk-mhra",
+    name: "UK MHRA (Medicines & Healthcare products Regulator)",
+    domain: "gov.uk/mhra",
+    url: "https://www.gov.uk/mhra",
+    category: "wipo",
+    categoryLabel: "United Kingdom Drug Regulator",
+    badgeClass: "badge-wipo",
+    icon: "🇬🇧",
+    scope: "Traditional Herbal Registration (THR) Scheme & Safety Monograph Guidance",
+    description: "Executive agency regulating traditional herbal medicines in the United Kingdom under the THR certification scheme based on long-standing traditional medicinal safety and efficacy."
+  },
+  {
+    id: "who-traditional",
+    name: "WHO Traditional Medicine & Global Centre (Jamnagar)",
+    domain: "who.int",
+    url: "https://www.who.int",
+    category: "wipo",
+    categoryLabel: "World Health Organization",
+    badgeClass: "badge-wipo",
+    icon: "🌐",
+    scope: "WHO Global Centre for Traditional Medicine & Quality Assurance Guidelines",
+    description: "Global health body standardizing botanical safety, Good Agricultural and Collection Practices (GACP), and evidence-based integration of traditional medicines into global health systems."
+  },
+
+  // 4. Vernacular & Text Swapping / Dialect Datasets
+  {
+    id: "vernacular-echarak",
+    name: "NMPB e-Charak (National Medicinal Plants Board)",
+    domain: "echarak.in",
+    url: "https://echarak.in",
+    category: "vernacular",
+    categoryLabel: "Vernacular Dialect Concordance",
+    badgeClass: "badge-vernacular",
+    icon: "🌿",
+    scope: "1,200+ Regional Indian Dialect Herb Names Mapped to Binomials",
+    description: "Flagship vernacular plant database by NMPB grounding regional folk terms (Hindi, Marathi, Gujarati, Tamil, Telugu, Kannada, Bengali) to verified Latin botanical taxa."
+  },
+  {
+    id: "vernacular-api-sanskrit",
+    name: "Ayurvedic Pharmacopoeia (API) Sanskrit Concordance",
+    domain: "pcimh.gov.in",
+    url: "https://pcimh.gov.in",
+    category: "vernacular",
+    categoryLabel: "Classical Sanskrit Lexicon",
+    badgeClass: "badge-vernacular",
+    icon: "🪷",
+    scope: "Charaka, Sushruta & Vagbhata Shloka Dialect Normalization Dataset",
+    description: "Official canonical concordance resolving classical Sanskrit Shlokas, Paryayas (synonyms), Guna-Karma attributes, and anatomical actions into modern pharmacological terms."
+  },
+  {
+    id: "vernacular-upi-greco",
+    name: "Unani Pharmacopoeia (UPI) & Persian/Arabic Lexicon",
+    domain: "pcimh.gov.in",
+    url: "https://pcimh.gov.in",
+    category: "vernacular",
+    categoryLabel: "Greco-Arab / Persian Lexicon",
+    badgeClass: "badge-vernacular",
+    icon: "🏺",
+    scope: "Bayaz-e-Kabeer & Qarabadeen Greco-Arab Classical Synonym Swapping",
+    description: "Specialized linguistic dataset mapping Persian, Arabic, and Urdu classical Unani medical treatises and polyherbal compound names to standardized botanical nomenclature."
+  },
+  {
+    id: "vernacular-spi-tamil",
+    name: "Siddha Pharmacopoeia (SPI) Agathiyar Dialect Concordance",
+    domain: "pcimh.gov.in",
+    url: "https://pcimh.gov.in",
+    category: "vernacular",
+    categoryLabel: "Classical Tamil Lexicon",
+    badgeClass: "badge-vernacular",
+    icon: "📜",
+    scope: "Ancient Palm-Leaf Agathiyar Gunavagadam Dialect Term Swapping",
+    description: "Linguistic mapping corpus resolving ancient poetic Tamil palm-leaf manuscript names (Agathiyar, Therayar, Bogar) into validated botanical, mineral, and marine sources."
+  },
+  {
+    id: "vernacular-tkrc",
+    name: "CSIR-TKDL Traditional Knowledge Resource Classification (TKRC)",
+    domain: "tkdl.res.in",
+    url: "https://tkdl.res.in",
+    category: "vernacular",
+    categoryLabel: "Multilingual IPC Ontology",
+    badgeClass: "badge-vernacular",
+    icon: "🌐",
+    scope: "International Patent Classification (IPC) Linked 200,000+ Subgroup Ontology",
+    description: "Structured taxonomic knowledge classification system bridging vernacular Indian Ayurvedic/Unani/Siddha medical terms directly into IPC patent patentability search keys."
+  }
+];
+
+let activeSourceCategory = "all";
+
+function openSourcesModal() {
+  const modal = document.getElementById("sourcesModal");
+  if (!modal) return;
+  modal.classList.remove("hidden");
+  
+  // Reset search and tab
+  const searchInput = document.getElementById("sourcesSearchInput");
+  if (searchInput) searchInput.value = "";
+  activeSourceCategory = "all";
+  updateSourceTabsUI();
+  renderSources();
+}
+
+function closeSourcesModal() {
+  const modal = document.getElementById("sourcesModal");
+  if (modal) modal.classList.add("hidden");
+}
+
+function selectSourceCategory(category) {
+  activeSourceCategory = category;
+  updateSourceTabsUI();
+  renderSources();
+}
+
+function updateSourceTabsUI() {
+  const tabs = {
+    all: document.getElementById("srcTabAll"),
+    central: document.getElementById("srcTabCentral"),
+    state: document.getElementById("srcTabState"),
+    wipo: document.getElementById("srcTabWipo"),
+    vernacular: document.getElementById("srcTabVernacular")
+  };
+  
+  Object.keys(tabs).forEach(cat => {
+    if (tabs[cat]) {
+      if (cat === activeSourceCategory) {
+        tabs[cat].classList.add("active");
+      } else {
+        tabs[cat].classList.remove("active");
+      }
+    }
+  });
+}
+
+function filterSources() {
+  renderSources();
+}
+
+function renderSources() {
+  const grid = document.getElementById("sourcesGrid");
+  if (!grid) return;
+  
+  const searchInput = document.getElementById("sourcesSearchInput");
+  const query = searchInput ? searchInput.value.trim().toLowerCase() : "";
+  
+  const filtered = AYUSH_SOURCES_CATALOG.filter(item => {
+    const matchesCategory = (activeSourceCategory === "all") || (item.category === activeSourceCategory);
+    if (!matchesCategory) return false;
+    
+    if (!query) return true;
+    
+    const textCorpus = `${item.name} ${item.domain} ${item.scope} ${item.description} ${item.categoryLabel}`.toLowerCase();
+    return textCorpus.includes(query);
+  });
+  
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: #64748B;">
+        <div style="font-size: 32px; margin-bottom: 8px;">🔍</div>
+        <strong style="font-size: 14px; color: #0F172A;">No statutory data sources found</strong>
+        <p style="font-size: 12px; margin-top: 4px;">Try searching for "Gujarat", "WIPO", "Section 3(p)", "e-Charak", or "Pharmacopoeia"</p>
+      </div>
+    `;
+    return;
+  }
+  
+  grid.innerHTML = filtered.map(item => `
+    <div class="source-item-card">
+      <div>
+        <div class="source-card-top">
+          <div class="source-card-title-row">
+            <span class="source-card-icon">${item.icon}</span>
+            <span class="source-card-name">${item.name}</span>
+          </div>
+          <span class="source-card-category-badge ${item.badgeClass}">${item.categoryLabel}</span>
+        </div>
+        <div style="font-size: 11.5px; font-weight: 600; color: #059669; margin-bottom: 6px;">
+          ⚖️ ${item.scope}
+        </div>
+        <p class="source-card-desc">${item.description}</p>
+      </div>
+      <div class="source-card-bottom">
+        <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="source-url-preview" title="Visit ${item.domain}">
+          🌐 ${item.domain}
+        </a>
+        <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="source-visit-btn">
+          <span>Visit Official Portal</span>
+          <span>↗</span>
+        </a>
+      </div>
+    </div>
+  `).join("");
+}
+
+function initSources() {
+  // Pre-render sources grid if modal exists
+  renderSources();
+}
+
 
 

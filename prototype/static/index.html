@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=24">
+  <link rel="stylesheet" href="/static/css/style.css?v=28">
 </head>
 <body>
 
@@ -137,10 +137,17 @@
             <span class="pro-label">Paid</span>
             <span class="pro-badge">PAID</span>
           </button>
+          <button class="header-icon-btn lang-toggle-btn" id="headerLangBtn" onclick="toggleLanguage()" title="Switch Language (English / हिंदी)">
+            <span class="lang-icon">🌐</span>
+            <span class="lang-label" id="headerLangLabel">EN / हिंदी</span>
+          </button>
+          <button class="header-icon-btn sources-toggle-btn" id="headerSourcesBtn" onclick="openSourcesModal()" title="Verified Statutory &amp; Regulatory Sources Directory">
+            <span>📚 Sources</span>
+          </button>
           <button class="header-icon-btn" onclick="openArchitectureModal()" title="Multi-Agent StateGraph Architecture">
             <span>⚡ Architecture</span>
           </button>
-          <button class="header-icon-btn" onclick="openModelConfigModal()" title="Model & API Configuration">
+          <button class="header-icon-btn" onclick="openModelConfigModal()" title="Model &amp; API Configuration">
             <span>⚙️ Settings</span>
           </button>
         </div>
@@ -764,6 +771,18 @@
           </div>
         </div>
 
+        <!-- 5. Appearance & Display Theme -->
+        <div class="settings-theme-row">
+          <div class="theme-row-label">
+            <span class="theme-row-title">🎨 Display Theme</span>
+            <span class="theme-row-subtitle">Switch between clean daylight and high-contrast dark night mode</span>
+          </div>
+          <button type="button" class="btn-theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Dark / Light Mode">
+            <span id="themeToggleIcon">🌙</span>
+            <span id="themeToggleText">Switch to Dark Mode</span>
+          </button>
+        </div>
+
         <div class="settings-status-note" id="settingsSaveStatus"></div>
       </div>
       <div class="modal-sheet-footer">
@@ -970,6 +989,65 @@
       </div>
       <div class="modal-sheet-footer">
         <button class="btn-confirm" onclick="closeArchitectureModal()">Close Architecture</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPREHENSIVE VERIFIED STATUTORY & REGULATORY SOURCES DIRECTORY MODAL -->
+  <div class="modal-backdrop hidden" id="sourcesModal">
+    <div class="modal-sheet-card sources-modal-container">
+      <div class="modal-sheet-header">
+        <div>
+          <div class="sheet-title">📚 Official Statutory, Regulatory &amp; Vernacular Data Sources</div>
+          <div class="sources-header-desc">
+            Official government gazette portals, pharmacopoeial bodies, state licensing authorities, global IP treaties, and dialect concordances grounding IP-SAKTI Sahayak.
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="closeSourcesModal()">✕</button>
+      </div>
+
+      <!-- Controls: Real-time Search & Filter Tabs -->
+      <div class="sources-controls-bar">
+        <div class="sources-search-wrapper">
+          <span class="sources-search-icon">🔍</span>
+          <input type="text" id="sourcesSearchInput" class="sources-search-input" placeholder="Search authorities, gazettes, state portals, WIPO, or vernacular datasets..." oninput="filterSources()">
+        </div>
+        <div class="sources-tabs-row">
+          <button class="sources-tab-btn active" id="srcTabAll" onclick="selectSourceCategory('all')">
+            <span>🌐 All Sources</span>
+            <span class="badge-count" id="srcCountAll">26</span>
+          </button>
+          <button class="sources-tab-btn" id="srcTabCentral" onclick="selectSourceCategory('central')">
+            <span>🏛️ Central Indian Authorities</span>
+            <span class="badge-count">8</span>
+          </button>
+          <button class="sources-tab-btn" id="srcTabState" onclick="selectSourceCategory('state')">
+            <span>📍 State Ayush Licensing</span>
+            <span class="badge-count">7</span>
+          </button>
+          <button class="sources-tab-btn" id="srcTabWipo" onclick="selectSourceCategory('wipo')">
+            <span>🌍 WIPO &amp; Foreign Regimes</span>
+            <span class="badge-count">6</span>
+          </button>
+          <button class="sources-tab-btn" id="srcTabVernacular" onclick="selectSourceCategory('vernacular')">
+            <span>🌿 Vernacular &amp; Swapping Datasets</span>
+            <span class="badge-count">5</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sources Grid (Populated dynamically by app.js) -->
+      <div class="modal-sheet-body" style="padding: 0;">
+        <div class="sources-grid-container" id="sourcesGrid">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <div class="modal-sheet-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 11px; color: #64748B;">
+          🔒 All 26 authorities cryptographically cross-referenced against official gazette registries with SHA-256 integrity validation.
+        </span>
+        <button class="btn-confirm" onclick="closeSourcesModal()">Close Sources</button>
       </div>
     </div>
   </div>
@@ -1351,6 +1429,6 @@
     </div>
   </div>
 
-  <script src="/static/js/app.js?v=24"></script>
+  <script src="/static/js/app.js?v=28"></script>
 </body>
 </html>
