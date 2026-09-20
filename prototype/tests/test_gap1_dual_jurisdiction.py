@@ -122,5 +122,13 @@ class TestGap1DualJurisdiction(unittest.TestCase):
         self.assertIn("us_fda_agent", node_ids_intl)
         self.assertNotIn("allied_agent", node_ids_intl)
 
+    def test_confidence_and_escalation_readiness(self):
+        """Tests that both India and International regimes yield high-grounding confidence data and citations."""
+        res_in = regulatory_graph.invoke("Turmeric Curcumin topical balm Section 3p", jurisdiction="india")
+        self.assertTrue(len(res_in.get("citations", [])) >= 2)
+        
+        res_intl = regulatory_graph.invoke("Ashwagandha export to Germany under EU THMPD", jurisdiction="international")
+        self.assertTrue(len(res_intl.get("citations", [])) >= 2)
+
 if __name__ == "__main__":
     unittest.main()

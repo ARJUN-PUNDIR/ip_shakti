@@ -1091,6 +1091,136 @@
     </div>
   </div>
 
+  <!-- 1-CLICK HUMAN IP FACILITATOR ESCALATION MODAL (GOVT. SIPP SCHEME & AYUSH ATTORNEYS) -->
+  <div class="modal-backdrop hidden" id="facilitatorEscalationModal">
+    <div class="modal-sheet-card facilitator-modal-container">
+      <div class="modal-sheet-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="facilitator-modal-avatar">👨‍⚖️</div>
+          <div>
+            <div class="sheet-title" id="facilitatorModalTitle">1-Click Human IP Facilitator Escalation</div>
+            <div class="sources-header-desc" id="facilitatorModalSub">
+              Direct connection to accredited Patent Facilitators under the <strong>Govt. of India SIPP Scheme</strong> and registered Ayush patent attorneys.
+            </div>
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="closeFacilitatorEscalationModal()">✕</button>
+      </div>
+
+      <!-- SIPP Scheme Benefits Banner -->
+      <div class="sipp-scheme-banner">
+        <div class="sipp-banner-badge">🇮🇳 SIPP Scheme Empanelled</div>
+        <div class="sipp-banner-text">
+          Under the <strong>Scheme for Facilitating Start-Ups Intellectual Property Protection (SIPP)</strong>, professional facilitation fees are 100% borne by the Office of CGPDTM / DPIIT (Ministry of Commerce & Industry) for eligible Startups and MSMEs.
+        </div>
+      </div>
+
+      <div class="modal-sheet-body" style="padding: 16px 20px;">
+        <!-- Active Query Brief -->
+        <div class="escalate-brief-box">
+          <div class="escalate-brief-header">
+            <span class="escalate-brief-label">📋 ACTIVE CASE DOSSIER PREVIEW</span>
+            <span class="escalate-brief-badge" id="escalateRegimeBadge">NATIONAL (INDIA)</span>
+          </div>
+          <div class="escalate-brief-query" id="escalateQueryPreview">Can I patent an Ayurvedic topical pain relief balm containing Curcumin and Wintergreen Oil?</div>
+          <div class="escalate-brief-meta" id="escalateMetaPreview">
+            <span>• Statutory Anchors: Section 3(p), Rule 158-B, NBA Form 3</span>
+            <span>• Grounding: 98.4% [Tri-Anchor Verified]</span>
+          </div>
+        </div>
+
+        <!-- Select Facilitator / Channel -->
+        <div style="margin-top: 14px;">
+          <div class="escalate-section-title">Select Empanelled Facilitator &amp; Representation Track</div>
+          <div class="facilitators-list">
+            <label class="facilitator-card active">
+              <input type="radio" name="selectedFacilitator" value="adv_rajesh" checked>
+              <div class="facilitator-info">
+                <div class="fac-name-row">
+                  <span class="fac-name">Adv. Devendra Verma, LL.M.</span>
+                  <span class="fac-badge sipp">SIPP Facilitator</span>
+                  <span class="fac-exp">18+ Yrs Exp</span>
+                </div>
+                <div class="fac-specialty">Former Senior Patent Examiner (CGPDTM) • Specialized in ASU Formulations &amp; Section 3(p) TKDL Exclusions</div>
+                <div class="fac-turnaround">⚡ Average Response: &lt; 2 Hours • High Success Rate on Form 3 Approvals</div>
+              </div>
+            </label>
+
+            <label class="facilitator-card">
+              <input type="radio" name="selectedFacilitator" value="dr_aarti">
+              <div class="facilitator-info">
+                <div class="fac-name-row">
+                  <span class="fac-name">Dr. Aarti Deshmukh, Ph.D.</span>
+                  <span class="fac-badge agent">Registered Patent Agent</span>
+                  <span class="fac-exp">14+ Yrs Exp</span>
+                </div>
+                <div class="fac-specialty">Ayurvedic Pharmacologist &amp; Patent Agent (IN/PA-2418) • Classical vs Proprietary Drug Licensing &amp; Section 3(e) Synergism Claims</div>
+                <div class="fac-turnaround">⚡ Average Response: &lt; 4 Hours • Expert in Ayurvedic Pharmacopoeia (API) Prior Art</div>
+              </div>
+            </label>
+
+            <label class="facilitator-card">
+              <input type="radio" name="selectedFacilitator" value="adv_vikram">
+              <div class="facilitator-info">
+                <div class="fac-name-row">
+                  <span class="fac-name">Adv. Vikramaditya Sen</span>
+                  <span class="fac-badge global">Cross-Border Counsel</span>
+                  <span class="fac-exp">20+ Yrs Exp</span>
+                </div>
+                <div class="fac-specialty">Supreme Court &amp; High Court IP Counsel • WIPO GRATK Treaty 2024, Nagoya ABS Clearance &amp; EU THMPD Export Compliance</div>
+                <div class="fac-turnaround">⚡ Average Response: &lt; 3 Hours • Global Herbal Export Representation</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Escalation Action Track -->
+        <div style="margin-top: 14px;">
+          <div class="escalate-section-title">Select Escalation Priority</div>
+          <div class="escalate-priority-grid">
+            <label class="priority-opt active">
+              <input type="radio" name="escalatePriority" value="instant_brief" checked>
+              <div>
+                <div class="priority-opt-title">⚡ Instant Dossier Handover</div>
+                <div class="priority-opt-desc">Auto-submits full StateGraph synthesis &amp; citations for formal legal opinion</div>
+              </div>
+            </label>
+            <label class="priority-opt">
+              <input type="radio" name="escalatePriority" value="priority_call">
+              <div>
+                <div class="priority-opt-title">📞 Priority 15-Min Consultation</div>
+                <div class="priority-opt-desc">Direct phone / video bridge with attorney within statutory filing window</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Submission Status Container (Hidden initially) -->
+        <div class="escalation-success-box hidden" id="escalationSuccessBox">
+          <div class="escalation-success-icon">✅</div>
+          <div class="escalation-success-title">Dossier Successfully Escalated to SIPP Facilitator!</div>
+          <div class="escalation-success-desc">
+            Your case brief and statutory grounding dossier have been securely transmitted under reference:
+            <div class="docket-ref-code" id="escalationDocketCode">SIPP-AYUSH-2026-8491</div>
+            The facilitator will contact you within <strong>2 hours</strong> for representation. Professional fees are subsidized under the SIPP Scheme.
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-sheet-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 11px; color: #64748B;">
+          🛡️ Transmitted securely under Advocate-Client Privilege &amp; DPDP Act 2023 compliance.
+        </span>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-cancel" onclick="closeFacilitatorEscalationModal()">Cancel</button>
+          <button class="btn-confirm" id="submitEscalateBtn" onclick="submitFacilitatorEscalation()">
+            🚀 Submit 1-Click Escalation
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- WEB SPEECH API / VOICE TRANSCRIBER OVERLAY -->
   <div class="modal-backdrop hidden" id="voiceModal">
     <div class="voice-transcribe-box">
