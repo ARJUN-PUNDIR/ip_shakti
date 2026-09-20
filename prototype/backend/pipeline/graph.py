@@ -52,7 +52,7 @@ class RegulatoryStateGraph:
             "edges": self.edges
         }
 
-    def invoke(self, initial_state: Any, domain: str = "Ayurveda") -> RegulatoryState:
+    def invoke(self, initial_state: Any, domain: str = "Ayurveda", language: str = "en") -> RegulatoryState:
         """
         Executes the StateGraph across defined nodes and edges.
         1. START -> normalizer
@@ -137,6 +137,84 @@ class RegulatoryStateGraph:
         roadmap = state.get("filing_roadmap", [])
 
         title = f"{herbs_str} — Multi-Agent Regulatory Assessment" if botanicals else f"Ayush Regulatory Intelligence Assessment"
+        if language == "hi":
+            title = f"{herbs_str} — बहु-एजेंट नियामक मूल्यांकन" if botanicals else "आयुष विनियामक बुद्धिमत्ता मूल्यांकन"
+
+        if language == "hi":
+            summary_parts = [
+                f"### वैधानिक निष्कर्ष: {herbs_str} ({dosage})",
+                f"भारतीय पेटेंट अधिनियम 1970, जैविक विविधता अधिनियम 2002/2023, औषधि एवं प्रसाधन सामग्री नियम 1945 तथा अंतर्राष्ट्रीय व्यापार दिशानिर्देशों के अंतर्गत बहु-एजेंट वैधानिक रिपोर्ट:",
+            ]
+
+            vernacular_matches = state.get("vernacular_mappings", {}).get("recognized_vernaculars", [])
+            if vernacular_matches:
+                summary_parts.extend([
+                    "",
+                    "### पारंपरिक बोली एवं फार्माकोपिया मोनोग्राफ सत्यापन",
+                ])
+                for vm in vernacular_matches:
+                    summary_parts.append(
+                        f"• **पहचानी गई बोली**: '{vm['spoken_vernacular'].title()}' ({vm['language_origin']} / {vm['traditional_system']}) "
+                        f"➔ मानकीकृत: *{vm['latin_name']}* ({vm['canonical_name']}) | "
+                        f"**मोनोग्राफ**: {vm['pharmacopoeia_monograph']} | **TKRC**: {vm['tkrc_code']} | "
+                        f"**सक्रिय घटक**: {vm['active_chemical_marker']}"
+                    )
+
+            summary_parts.extend([
+                "",
+                f"### 1. भारतीय पेटेंट कार्यालय (IPO) एवं पूर्व कला (Prior Art) मूल्यांकन",
+                f"• **वैधानिक स्थिति**: {ipo.get('status', 'जांच आवश्यक')}",
+                f"• **परीक्षण निष्कर्ष**: {ipo.get('reasoning', 'पारंपरिक ज्ञान मूल्यांकन लागू किया गया।')}",
+                f"• **अनुशंसित दावा दायरा**: {ipo.get('recommended_claims', 'नवीन डिलीवरी प्रणाली या सहक्रियात्मक अनुपातों में तैयार करें।')}",
+                "",
+                f"### 2. राष्ट्रीय जैव विविधता प्राधिकरण (NBA) अनुमोदन",
+                f"• **नियामक स्थिति**: {nba.get('status', 'धारा 6 अनुमोदन आवश्यक')}",
+                f"• **वैधानिक अधिदेश**: {nba.get('reasoning', 'भारत के भीतर जैविक संसाधनों तक पहुंच के लिए BDA प्रावधानों का अनुपालन अनिवार्य है।')}",
+                f"• **प्रपत्र एवं दंड**: {nba.get('form_required', 'NBA प्रपत्र 3')} जमा करें। अनधिकृत व्यावसायिक उपयोग पर धारा 55 के तहत आपराधिक दायित्व लागू होता है।",
+                "",
+                f"### 3. राज्य आयुष लाइसेंसिंग प्राधिकरण (नियम 158-B)",
+                f"• **लाइसेंसिंग मार्ग**: {ayush.get('status', 'नियम 158-B अनुपालन')}",
+                f"• **निर्माण आवश्यकताएं**: {ayush.get('reasoning', 'अनुसूची T GMP और अनुमोदित फार्माकोपियल फॉर्मूलेशन का पालन अनिवार्य है।')}",
+                "",
+                f"### 4. वैश्विक निर्यात सामंजस्य",
+                f"• **निर्यात मूल्यांकन**: {glo.get('status', 'अनुपालन जांच')}",
+                f"• **लक्ष्य बाजार मानदंड**: {glo.get('reasoning', 'गंतव्य देश हेतु विशिष्ट वानस्पतिक डोजियर आवश्यक है।')}",
+            ])
+
+            if collisions:
+                summary_parts.extend([
+                    "",
+                    f"### 5. नियामक टकराव एवं निवारण (Cross-Regulatory Collision Matrix)",
+                    f"• ⚠️ **पहचाना गया टकराव**: {collisions[0]}"
+                ])
+
+            if workaround:
+                summary_parts.extend([
+                    "",
+                    f"### 6. पेटेंट योग्य व्यावहारिक रणनीति एवं फाइलिंग रोडमैप",
+                    f"• **अनुशंसित रणनीति**: {workaround}"
+                ])
+                if roadmap:
+                    for step in roadmap:
+                        summary_parts.append(f"• {step}")
+
+            direct_bullets = []
+            if ipo.get("status"):
+                direct_bullets.append(f"• **पेटेंट पात्रता (IPO)**: {ipo.get('status')} — {ipo.get('reasoning', '').split('.')[0]}.")
+            if nba.get("status"):
+                direct_bullets.append(f"• **जैव विविधता अनुपालन (NBA)**: {nba.get('status')} — {nba.get('reasoning', '').split('.')[0]}.")
+            if ayush.get("status"):
+                direct_bullets.append(f"• **आयुष लाइसेंसिंग मार्ग**: {ayush.get('status')} — {ayush.get('reasoning', '').split('.')[0]}.")
+            if glo.get("status"):
+                direct_bullets.append(f"• **वैश्विक निर्यात मार्ग**: {glo.get('status')} — {glo.get('reasoning', '').split('.')[0]}.")
+            if workaround:
+                direct_bullets.append(f"• **रणनीतिक समाधान**: {workaround.split('.')[0]}.")
+
+            direct_short_summary = "\n".join(direct_bullets)
+            state["direct_short_summary"] = direct_short_summary
+            state["title"] = title
+            state["summary"] = "\n".join(summary_parts)
+            return state
 
         summary_parts = [
             f"### Statutory Verdict: {herbs_str} ({dosage})",

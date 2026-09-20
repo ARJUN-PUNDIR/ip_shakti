@@ -4,8 +4,11 @@ Full Report Generator for SIH26045: IP-SAKTI Sahayak
 Generates an exhaustive, beautifully styled Word report.
 """
 
+import os
 import sys
 import docx
+
+DOWNLOADS_DIR = os.path.expanduser("~/Downloads")
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
@@ -669,15 +672,16 @@ def create_report():
     )
 
     # 10. Automated Document Generation Suite
-    add_styled_heading(doc, "Aspect 10: Dedicated IP & Statutory Document Generation Suite", level=2)
+    add_styled_heading(doc, "Aspect 10: Dedicated IP & Statutory Document Generation Suite & Assist Plus Workspace", level=2)
     add_body_p(
         doc,
-        "The application includes a dedicated 'Document Drafting Center' capable of generating ready-to-file legal drafts:\n"
+        "The application includes an executive 'Assist Plus Workspace' and document drafting suite capable of generating ready-to-file legal drafts:\n"
         "• Patent Form 1: Application for Grant of Patent\n"
         "• Patent Form 2: Provisional / Complete Specification (with non-3p claim syntax)\n"
         "• NBA Form 3: Application for Approval of the National Biodiversity Authority for IPR\n"
         "• Form 158-B Compliance Dossier: State Ayush Licensing checklist for classical and proprietary medicines\n"
-        "• Patient & Innovator Legal Disclosures: Voluntary informed consent and benefit-sharing declarations."
+        "• Patient & Innovator Legal Disclosures: Voluntary informed consent and benefit-sharing declarations.\n"
+        "• Assist Plus 6-Stage Milestone Roadmap: Dynamic statutory milestone tracking and verified Ministry of Ayush mentorship advisory."
     )
 
     # 11. IP Scanner & Prior Art Analyzer
@@ -881,11 +885,18 @@ def create_report():
         "IP-SAKTI Sahayak is not just a hackathon demonstration; it is a foundational national infrastructure project. By combining atomic clause-level legal grounding, multi-agent cross-regulatory conflict reasoning, and voice-first multilingual accessibility, it resolves the historical Ayush Patent Paradox and safeguards India's traditional knowledge for generations to come. We look forward to presenting this transformative platform to the Ministry of Ayush and securing victory at Smart India Hackathon 2026."
     )
 
-    # Save document
+    # Save document locally and directly to user Downloads
     output_filename = "SIH26045_IP_SAKTI_Sahayak_Comprehensive_Project_Report.docx"
     doc.save(output_filename)
+    
+    downloads_path1 = os.path.join(DOWNLOADS_DIR, "SIH26045_IP_SAKTI_Sahayak_Comprehensive_Project_Report.docx")
+    downloads_path2 = os.path.join(DOWNLOADS_DIR, "IP_SAKTI_Sahayak_Final_Report.docx")
+    doc.save(downloads_path1)
+    doc.save(downloads_path2)
     print(f"Document successfully created: {output_filename}")
-    return output_filename
+    print(f"Document successfully saved to Downloads: {downloads_path1}")
+    print(f"Document successfully saved to Downloads: {downloads_path2}")
+    return downloads_path2
 
 if __name__ == "__main__":
     create_report()

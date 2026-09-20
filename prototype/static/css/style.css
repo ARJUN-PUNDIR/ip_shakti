@@ -322,7 +322,7 @@ html, body {
   width: 540px;
   height: 540px;
   background: radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.015) 50%, transparent 70%);
-  animation: glowBreathe 5.5s ease-in-out infinite alternate;
+  animation: glowBreathe 4.0s ease-in-out infinite alternate;
 }
 
 .glow-gold {
@@ -331,7 +331,7 @@ html, body {
   width: 480px;
   height: 480px;
   background: radial-gradient(circle, rgba(217, 119, 6, 0.035) 0%, rgba(245, 158, 11, 0.01) 50%, transparent 70%);
-  animation: glowBreathe 6.5s ease-in-out infinite alternate 1s;
+  animation: glowBreathe 4.5s ease-in-out infinite alternate 0.8s;
 }
 
 /* Leaf Clusters & Live Movements */
@@ -355,7 +355,7 @@ html, body {
   width: 220px;
   height: 300px;
   transform-origin: bottom center;
-  animation: liveTulsiSway 5.5s ease-in-out infinite;
+  animation: liveTulsiSway 3.2s ease-in-out infinite;
 }
 
 @keyframes liveTulsiSway {
@@ -363,7 +363,7 @@ html, body {
     transform: rotate(15deg) translate(0, 0);
   }
   50% {
-    transform: rotate(22deg) translate(-12px, 16px);
+    transform: rotate(23deg) translate(-14px, 18px);
   }
   100% {
     transform: rotate(15deg) translate(0, 0);
@@ -377,7 +377,7 @@ html, body {
   width: 240px;
   height: 280px;
   transform-origin: bottom left;
-  animation: liveNeemSway 6.5s ease-in-out infinite;
+  animation: liveNeemSway 3.8s ease-in-out infinite;
 }
 
 @keyframes liveNeemSway {
@@ -385,7 +385,7 @@ html, body {
     transform: rotate(-16deg) translate(0, 0);
   }
   50% {
-    transform: rotate(-8deg) translate(14px, -10px);
+    transform: rotate(-7deg) translate(16px, -12px);
   }
   100% {
     transform: rotate(-16deg) translate(0, 0);
@@ -399,7 +399,7 @@ html, body {
   width: 175px;
   height: 235px;
   transform-origin: center;
-  animation: liveAshwaSway 6.0s ease-in-out infinite;
+  animation: liveAshwaSway 3.5s ease-in-out infinite;
 }
 
 @keyframes liveAshwaSway {
@@ -407,7 +407,7 @@ html, body {
     transform: rotate(-12deg) scale(0.95);
   }
   50% {
-    transform: rotate(-4deg) scale(1.04) translate(8px, -12px);
+    transform: rotate(-3deg) scale(1.04) translate(10px, -14px);
   }
   100% {
     transform: rotate(-12deg) scale(0.95);
@@ -420,7 +420,7 @@ html, body {
   left: 12%;
   width: 80px;
   height: 115px;
-  animation: liveDrift1 7.0s ease-in-out infinite alternate;
+  animation: liveDrift1 4.2s ease-in-out infinite alternate;
 }
 
 @keyframes liveDrift1 {
@@ -428,10 +428,10 @@ html, body {
     transform: translate(0, 0) rotate(10deg);
   }
   50% {
-    transform: translate(28px, -32px) rotate(24deg);
+    transform: translate(32px, -36px) rotate(26deg);
   }
   100% {
-    transform: translate(-18px, 22px) rotate(6deg);
+    transform: translate(-20px, 24px) rotate(6deg);
   }
 }
 
@@ -441,7 +441,7 @@ html, body {
   right: 16%;
   width: 70px;
   height: 100px;
-  animation: liveDrift2 7.5s ease-in-out infinite alternate 1s;
+  animation: liveDrift2 4.5s ease-in-out infinite alternate 0.8s;
 }
 
 @keyframes liveDrift2 {
@@ -938,6 +938,105 @@ html, body {
   z-index: 30;
 }
 
+.attached-docs-tray {
+  max-width: 760px;
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 2px 4px;
+  animation: fadeInTray 0.2s ease;
+}
+
+@keyframes fadeInTray {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.attached-doc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  border-radius: 12px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #1E293B;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.15s ease;
+}
+
+.attached-doc-chip:hover {
+  background: #F1F5F9;
+  border-color: #94A3B8;
+}
+
+.doc-chip-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.doc-chip-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.doc-chip-name {
+  font-weight: 600;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: #0F172A;
+}
+
+.doc-chip-meta {
+  font-size: 10.5px;
+  color: #059669;
+  font-weight: 500;
+}
+
+.doc-chip-remove {
+  background: none;
+  border: none;
+  color: #64748B;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  margin-left: 2px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.doc-chip-remove:hover {
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.user-attached-docs-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.user-attached-doc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  backdrop-filter: blur(4px);
+}
+
 .input-pill-wrapper {
   max-width: 760px;
   width: 100%;
@@ -968,10 +1067,16 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.12s, color 0.12s;
 }
 
 .input-action-btn:hover {
   color: var(--text-black);
+  transform: scale(1.1);
+}
+
+.input-action-btn.doc-attach-btn:hover {
+  color: #059669;
 }
 
 .chat-textarea {

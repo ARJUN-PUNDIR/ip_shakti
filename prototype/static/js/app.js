@@ -350,34 +350,235 @@ function submitPrompt(promptText) {
   handleSend();
 }
 
+function handleSuggestionClick(num) {
+  const dict = (typeof I18N !== "undefined" && I18N[currentAyushLanguage]) ? I18N[currentAyushLanguage] : I18N.en;
+  const promptText = dict[`card${num}Prompt`];
+  submitPrompt(promptText);
+}
+
+/* ===================================================
+   DOCUMENT ATTACHMENT & UPLOAD PIPELINE
+   =================================================== */
+let attachedDocumentsList = [];
+
+function triggerDocUpload() {
+  const fileInput = document.getElementById("docFileInput");
+  if (fileInput) {
+    fileInput.value = "";
+    fileInput.click();
+  }
+}
+
+async function handleDocFilesSelected(e) {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+
+  const tray = document.getElementById("attachedDocsTray");
+  if (tray) tray.classList.remove("hidden");
+
+  for (const file of files) {
+    const docId = "doc_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6);
+    const sizeKb = Math.max(1, Math.round(file.size / 1024));
+
+    // Render loading chip
+    renderDocChip({
+      id: docId,
+      filename: file.name,
+      size_kb: sizeKb
+    });
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/documents/parse", {
+        method: "POST",
+        body: formData
+      });
+
+      if (!res.ok) throw new Error("Upload response not OK: " + res.status);
+      const data = await res.json();
+
+      const docItem = {
+        id: docId,
+        filename: data.filename,
+        size_kb: data.size_kb,
+        word_count: data.word_count,
+        botanicals_detected: data.botanicals_detected || [],
+        clauses_detected: data.clauses_detected || [],
+        text: data.text || "",
+        snippet: data.snippet || ""
+      };
+
+      attachedDocumentsList.push(docItem);
+      updateDocChip(docId, docItem);
+
+      const isHi = currentAyushLanguage === "hi";
+      const toastMsg = isHi
+        ? `📎 दस्तावेज़ संलग्न: ${data.filename} (${data.size_kb} KB)`
+        : `📎 Document attached: ${data.filename} (${data.size_kb} KB)`;
+      showNotificationToast(toastMsg);
+    } catch (err) {
+      console.warn("Server document parsing fallback to local reader:", err);
+      readDocLocally(file, docId, sizeKb);
+    }
+  }
+}
+
+function readDocLocally(file, docId, sizeKb) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const textContent = String(e.target.result || "");
+    const docItem = {
+      id: docId,
+      filename: file.name,
+      size_kb: sizeKb,
+      word_count: textContent.split(/\s+/).length,
+      botanicals_detected: [],
+      clauses_detected: [],
+      text: textContent.slice(0, 10000),
+      snippet: textContent.slice(0, 200).replace(/\n/g, " ")
+    };
+    attachedDocumentsList.push(docItem);
+    updateDocChip(docId, docItem);
+    showNotificationToast(`📎 ${file.name} (${sizeKb} KB) attached`);
+  };
+  reader.onerror = function() {
+    const docItem = {
+      id: docId,
+      filename: file.name,
+      size_kb: sizeKb,
+      word_count: 0,
+      botanicals_detected: [],
+      clauses_detected: [],
+      text: `[Attached file: ${file.name}]`,
+      snippet: `Attached file: ${file.name}`
+    };
+    attachedDocumentsList.push(docItem);
+    updateDocChip(docId, docItem);
+  };
+
+  if (file.type.startsWith("text") || file.name.match(/\.(txt|md|json|csv|tsv|rtf)$/i)) {
+    reader.readAsText(file);
+  } else {
+    reader.onload({ target: { result: `[Uploaded binary document: ${file.name} (${sizeKb} KB)]` } });
+  }
+}
+
+function renderDocChip(doc) {
+  const tray = document.getElementById("attachedDocsTray");
+  if (!tray) return;
+
+  const isHi = currentAyushLanguage === "hi";
+  let icon = "📄";
+  if (doc.filename.endsWith(".pdf")) icon = "📕";
+  else if (doc.filename.match(/\.(docx|doc)$/i)) icon = "📘";
+  else if (doc.filename.match(/\.(png|jpg|jpeg|webp)$/i)) icon = "🖼️";
+
+  const chip = document.createElement("div");
+  chip.className = "attached-doc-chip";
+  chip.id = doc.id;
+  chip.innerHTML = `
+    <span class="doc-chip-icon">${icon}</span>
+    <div class="doc-chip-info">
+      <span class="doc-chip-name" title="${escapeHtml(doc.filename)}">${escapeHtml(doc.filename)}</span>
+      <span class="doc-chip-meta">${isHi ? 'प्रसंस्करण हो रहा है...' : 'Screening document...'} (${doc.size_kb} KB)</span>
+    </div>
+    <button class="doc-chip-remove" onclick="removeAttachedDoc('${doc.id}')" title="Remove">&times;</button>
+  `;
+  tray.appendChild(chip);
+}
+
+function updateDocChip(docId, doc) {
+  const chip = document.getElementById(docId);
+  if (!chip) return;
+
+  const isHi = currentAyushLanguage === "hi";
+  let metaText = `${doc.size_kb} KB`;
+  if (doc.botanicals_detected && doc.botanicals_detected.length > 0) {
+    metaText += ` • 🌿 ${doc.botanicals_detected.slice(0, 2).join(", ")}`;
+  } else {
+    metaText += isHi ? " • ✓ विश्लेषण हेतु तैयार" : " • ✓ Ready to analyze";
+  }
+
+  const metaEl = chip.querySelector(".doc-chip-meta");
+  if (metaEl) metaEl.textContent = metaText;
+}
+
+function removeAttachedDoc(docId) {
+  attachedDocumentsList = attachedDocumentsList.filter(d => d.id !== docId);
+  const chip = document.getElementById(docId);
+  if (chip) chip.remove();
+
+  const tray = document.getElementById("attachedDocsTray");
+  if (tray && attachedDocumentsList.length === 0) {
+    tray.classList.add("hidden");
+  }
+}
+
+function clearAttachedDocs() {
+  attachedDocumentsList = [];
+  const tray = document.getElementById("attachedDocsTray");
+  if (tray) {
+    tray.innerHTML = "";
+    tray.classList.add("hidden");
+  }
+}
+
 // Handle Send from Input Dock
 function handleSend() {
   const input = document.getElementById("userPromptInput");
-  const query = input.value.trim();
+  let query = input ? input.value.trim() : "";
+
+  // If user attached documents but did not enter text query
+  if (!query && attachedDocumentsList.length > 0) {
+    query = currentAyushLanguage === "hi"
+      ? "कृपया संलग्न विनियामक दस्तावेज़ / फॉर्मूलेशन विनिर्देश का भारतीय पेटेंट अधिनियम धारा 3(p), एनबीए प्रपत्र 3 अनुपालन और आयुष नियम 158-B लाइसेंसिंग के अनुसार विश्लेषण करें।"
+      : "Please evaluate the attached regulatory document / formulation specification for Section 3(p) patent eligibility, NBA Form 3 compliance, and Ayush Rule 158-B licensing.";
+  }
+
   if (!query) return;
 
-  input.value = "";
-  input.style.height = "auto";
+  if (input) {
+    input.value = "";
+    input.style.height = "auto";
+  }
 
   const hero = document.getElementById("emptyStateHero");
   if (hero) hero.style.display = "none";
 
-  runQueryPipeline(query, null);
+  const docsToSend = [...attachedDocumentsList];
+  clearAttachedDocs();
+
+  runQueryPipeline(query, null, docsToSend);
 }
 
 // ===================================================
 // IMMEDIATE STRUCTURED REGULATORY PIPELINE
 // ===================================================
-async function runQueryPipeline(queryText, scenarioId) {
+async function runQueryPipeline(queryText, scenarioId, attachedDocs = []) {
   const stream = document.getElementById("messagesStream");
 
-  // 1. Append User Bubble
+  // 1. Append User Bubble with Attached Documents Badge
   const userRow = document.createElement("div");
   userRow.className = "user-msg-row";
-  userRow.innerHTML = `<div class="user-msg-bubble">${escapeHtml(queryText)}</div>`;
+
+  let docsHtml = "";
+  if (attachedDocs && attachedDocs.length > 0) {
+    docsHtml = `<div class="user-attached-docs-wrapper">` + attachedDocs.map(d => `
+      <div class="user-attached-doc-badge">
+        <span>📄</span>
+        <strong>${escapeHtml(d.filename)}</strong>
+        <span style="opacity: 0.85; margin-left: 4px;">(${d.size_kb} KB${d.botanicals_detected && d.botanicals_detected.length ? ' • 🌿 ' + escapeHtml(d.botanicals_detected.slice(0, 2).join(', ')) : ''})</span>
+      </div>
+    `).join("") + `</div>`;
+  }
+
+  userRow.innerHTML = `<div class="user-msg-bubble">${docsHtml}<div class="user-bubble-text">${escapeHtml(queryText)}</div></div>`;
   stream.appendChild(userRow);
 
   // 2. Create Assistant Message Card Shell
+  const isHi = currentAyushLanguage === "hi";
   const assistantCard = document.createElement("div");
   assistantCard.className = "assistant-msg-card";
   assistantCard.innerHTML = `
@@ -386,14 +587,14 @@ async function runQueryPipeline(queryText, scenarioId) {
         <div class="assistant-avatar">🏛️</div>
         <span class="assistant-name">IP-SAKTI Sahayak</span>
       </div>
-      <span class="msg-engine-badge" id="cardEngineBadge">Verified Grounding</span>
+      <span class="msg-engine-badge" id="cardEngineBadge">${isHi ? 'सत्यापित विधिक साक्ष्य' : 'Verified Grounding'}</span>
     </div>
     <div class="card-vernacular-slot"></div>
     <div class="card-agents-slot"></div>
     <div class="card-trace-slot"></div>
     <div class="msg-content-text">
       <div style="display:flex; align-items:center; gap:8px; color:#64748B; font-size:13px; padding:12px 0;">
-        <span>⚙️ Evaluating Section 3(p), NBA Form 3, Rule 158-B, and Gazette SHA-256 hashes...</span>
+        <span>${isHi ? '⚙️ धारा 3(p), NBA प्रपत्र 3, नियम 158-B एवं राजपत्र SHA-256 हैश का मूल्यांकन किया जा रहा है...' : '⚙️ Evaluating Section 3(p), NBA Form 3, Rule 158-B, and Gazette SHA-256 hashes...'}</span>
       </div>
     </div>
     <div class="card-workaround-slot"></div>
@@ -418,7 +619,12 @@ async function runQueryPipeline(queryText, scenarioId) {
     const res = await fetch("/api/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: queryText, scenario_id: scenarioId })
+      body: JSON.stringify({ 
+        query: queryText, 
+        scenario_id: scenarioId,
+        language: currentAyushLanguage,
+        documents: attachedDocs
+      })
     });
     const data = await res.json();
 
@@ -1309,6 +1515,10 @@ function closeMcpModal() {
   if (modal) modal.classList.add("hidden");
 }
 
+window.openMcpModal = openMcpModal;
+window.closeMcpModal = closeMcpModal;
+
+
 function renderMcpToolsList(tools) {
   const container = document.getElementById("mcpToolsGrid");
   if (!container || !tools) return;
@@ -1441,8 +1651,8 @@ function returnToFreeTier() {
 
   if (headerProBtn) {
     headerProBtn.classList.remove("paid-active");
-    headerProBtn.title = "Switch between Free and Paid Tier";
-    headerProBtn.innerHTML = `<span class="pro-sparkle">★</span><span class="pro-label">Paid</span><span class="pro-badge">PAID</span>`;
+    headerProBtn.title = "Switch between Free and Assist Plus";
+    headerProBtn.innerHTML = `<span class="pro-sparkle">★</span><span class="pro-label">Assist Plus</span><span class="pro-badge">PLUS</span>`;
   }
 }
 
@@ -3941,9 +4151,118 @@ function initTheme() {
 }
 
 /* ===================================================
-   LANGUAGE SWITCH TOGGLE (ENGLISH / HINDI)
+   LANGUAGE SWITCH TOGGLE & FULL BILINGUAL (EN / HI) ENGINE
    =================================================== */
 let currentAyushLanguage = "en";
+
+const I18N = {
+  en: {
+    heroTitle: "What Ayush regulation, patent, or compliance can I assist with today?",
+    heroSub: "Evidence-first regulatory intelligence grounded across Indian (IPO, NBA, Ayush) and Global (WIPO, USPTO, EMA, FDA) regimes.",
+    chipMcp: "🔌 Model Context Protocol (MCP) Tools",
+    chipMcpBadge: "6 LIVE TOOLS",
+    chipArch: "⚡ StateGraph 8-Node Architecture",
+    chipScanner: "🔬 TKDL Formulation Screener",
+    card1Title: "Can I patent an Ayurvedic pain relief balm?",
+    card1Sub: "Curcumin + Wintergreen Oil Section 3(p) & 3(e) check",
+    card1Prompt: "Can I patent an Ayurvedic topical pain relief balm containing Curcumin and Wintergreen Oil in India?",
+    card2Title: "Exporting Ashwagandha to Germany",
+    card2Sub: "EU THMPD 15-year rule & NBA Form 1 export clearance",
+    card2Prompt: "What are the statutory requirements to export standardized Ashwagandha extract to Germany under EU THMPD?",
+    card3Title: "Classical vs Proprietary Cough Syrup",
+    card3Sub: "Rule 158-B safety, acute toxicity & pilot efficacy data",
+    card3Prompt: "What is the difference between licensing a Classical Ayurvedic Cough Syrup versus a Proprietary Syrup under Rule 158-B?",
+    card4Title: "🌿 Hakim Unani Dialect Normalizer",
+    card4Sub: "Asgandh Nagori & Filfil Siyah mapped to UPI Monographs",
+    card4Prompt: "I am an Unani Hakim. Can I patent a topical ointment made with Asgandh Nagori and Filfil Siyah for arthritis?",
+    inputPlaceholder: "Ask anything about Ayush patents, NBA approvals, licensing, or global export...",
+    dockDisclaimer: "IP-SAKTI Sahayak deterministically grounds all statements against official government gazettes. Verify with statutory authorities before legal filing.",
+    micBtnTitle: "Speak via Web Speech Recognition (Voice Query)",
+    docBtnTitle: "Attach Document / Research Paper / Formulation Spec (PDF, DOCX, TXT, Image)",
+    sendBtnTitle: "Send Regulatory Inquiry",
+    newInquiry: "New Inquiry",
+    savedChats: "SAVED CHATS",
+    regulatoryTools: "REGULATORY TOOLS",
+    paidTier: "Assist Plus",
+    formulationScreener: "Formulation TKDL Screener",
+    stategraphArch: "StateGraph Architecture",
+    mcpTools: "MCP Protocol Tools",
+    goalRoadmaps: "GOAL ROADMAPS",
+    mentorAdvisory: "MENTOR ADVISORY",
+    stategraphEngine: "StateGraph Engine",
+    stategraphSub: "8 Nodes • 12 Statutory Edges",
+    brandMinistry: "Ministry of Ayush",
+    headerSources: "📚 Sources",
+    headerArch: "⚡ Architecture",
+    headerSettings: "⚙️ Settings",
+    headerPaid: "Assist Plus",
+    headerLang: "🌐 EN / हिंदी",
+    paidHeroTitle: "Regulatory Intelligence & Milestone Suite",
+    paidHeroSub: "Select an authorized module to proceed with conversational AI inquiry, multi-stage compliance execution, or statutory advisory.",
+    paidCardChatTitle: "Normal Chatbot",
+    paidCardChatDesc: "Full-spectrum AI regulatory inquiry engine with multi-agent statutory verification and real-time citations.",
+    paidCardChatAction: "Launch Chatbot",
+    paidCardGoalTitle: "Multi-Agent Milestone Roadmap",
+    paidCardGoalDesc: "Autonomous LangGraph orchestrator deconstructing statutory goals into sequential regulatory stages.",
+    paidCardGoalAction: "Enter Goal Hub",
+    paidCardMentorTitle: "Statutory Mentors & Legal Verification",
+    paidCardMentorDesc: "Accredited Ayush patent attorneys, former CGPDTM controllers, and NBA access & benefit experts.",
+    paidCardMentorAction: "Book Consultation"
+  },
+  hi: {
+    heroTitle: "आज मैं आयुष नियमन, पेटेंट या अनुपालन में आपकी क्या सहायता कर सकता हूँ?",
+    heroSub: "भारतीय (IPO, NBA, आयुष) और वैश्विक (WIPO, USPTO, EMA, FDA) व्यवस्थाओं पर आधारित साक्ष्य-प्रधान नियामक बुद्धिमत्ता।",
+    chipMcp: "🔌 मॉडल कॉन्टेक्स्ट प्रोटोकॉल (MCP) टूल्स",
+    chipMcpBadge: "6 लाइव टूल्स",
+    chipArch: "⚡ स्टेटग्राफ 8-नोड आर्किटेक्चर",
+    chipScanner: "🔬 TKDL फॉर्मूलेशन परीक्षक",
+    card1Title: "क्या मैं आयुर्वेदिक दर्द निवारक बाम पेटेंट कर सकता हूँ?",
+    card1Sub: "करक्यूमिन + विंटरग्रीन तेल धारा 3(p) व 3(e) जांच",
+    card1Prompt: "क्या मैं भारत में करक्यूमिन और विंटरग्रीन तेल युक्त एक आयुर्वेदिक दर्द निवारक बाम को पेटेंट करा सकता हूँ?",
+    card2Title: "जर्मनी को अश्वगंधा का निर्यात",
+    card2Sub: "EU THMPD 15-वर्षीय नियम एवं NBA फॉर्म 1 निर्यात मंजूरी",
+    card2Prompt: "EU THMPD के तहत जर्मनी को मानकीकृत अश्वगंधा अर्क निर्यात करने के लिए क्या वैधानिक आवश्यकताएं हैं?",
+    card3Title: "शास्त्रीय बनाम प्रोप्राइटरी कफ सिरप",
+    card3Sub: "नियम 158-B सुरक्षा, तीव्र विषाक्तता व प्रायोगिक प्रभावकारिता डेटा",
+    card3Prompt: "नियम 158-B के तहत शास्त्रीय आयुर्वेदिक कफ सिरप बनाम प्रोप्राइटरी सिरप के लाइसेंसिंग में क्या अंतर है?",
+    card4Title: "🌿 हकीम यूनानी बोली सामान्यीकरण",
+    card4Sub: "असगंद नागोरी और फिलफिल सियाह को UPI मोनोग्राफ में मैप करें",
+    card4Prompt: "मैं एक यूनानी हकीम हूँ। क्या मैं गठिया के लिए असगंद नागोरी और फिलफिल सियाह से बने लेप को पेटेंट कर सकता हूँ?",
+    inputPlaceholder: "आयुष पेटेंट, NBA अनुमोदन, निर्माण लाइसेंसिंग या वैश्विक निर्यात के बारे में कुछ भी पूछें...",
+    dockDisclaimer: "आईपी-शक्ति सहायक सभी बयानों को आधिकारिक सरकारी राजपत्रों के विरुद्ध सत्यापित करता है। विधिक फाइलिंग से पहले वैधानिक प्राधिकरणों से पुष्टि करें।",
+    micBtnTitle: "बोलकर प्रश्न पूछें (माइक्रोफ़ोन आवाज़ पहचान)",
+    docBtnTitle: "दस्तावेज़ संलग्न करें / शोध पत्र / फॉर्मूलेशन विवरण (PDF, DOCX, TXT, चित्र)",
+    sendBtnTitle: "नियामक प्रश्न भेजें",
+    newInquiry: "नया विधिक परामर्श",
+    savedChats: "सहेजी गई बातचीत",
+    regulatoryTools: "नियामक उपकरण",
+    paidTier: "असिस्ट प्लस",
+    formulationScreener: "टीकेडीएल फॉर्मूलेशन परीक्षक",
+    stategraphArch: "स्टेटग्राफ आर्किटेक्चर",
+    mcpTools: "MCP प्रोटोकॉल टूल्स",
+    goalRoadmaps: "लक्ष्य रोडमैप",
+    mentorAdvisory: "परामर्शदाता सलाह",
+    stategraphEngine: "स्टेटग्राफ इंजन",
+    stategraphSub: "8 नोड्स • 12 वैधानिक संबंध",
+    brandMinistry: "आयुष मंत्रालय",
+    headerSources: "📚 स्रोत",
+    headerArch: "⚡ आर्किटेक्चर",
+    headerSettings: "⚙️ सेटिंग्स",
+    headerPaid: "असिस्ट प्लस",
+    headerLang: "🌐 हिंदी",
+    paidHeroTitle: "नियामक बुद्धिमत्ता एवं माइलस्टोन सूट",
+    paidHeroSub: "संवादात्मक एआई परामर्श, बहु-चरणीय अनुपालन निष्पादन या वैधानिक सलाह के लिए अधिकृत मॉड्यूल चुनें।",
+    paidCardChatTitle: "सामान्य चैटबॉट",
+    paidCardChatDesc: "मल्टी-एजेंट वैधानिक सत्यापन और वास्तविक समय संदर्भों के साथ संपूर्ण एआई नियामक परामर्श इंजन।",
+    paidCardChatAction: "चैटबॉट शुरू करें",
+    paidCardGoalTitle: "मल्टी-एजेंट माइलस्टोन रोडमैप",
+    paidCardGoalDesc: "वैधानिक लक्ष्यों को क्रमिक नियामक चरणों में विभाजित करने वाला ऑटोनॉमस ऑर्केस्ट्रेटर।",
+    paidCardGoalAction: "लक्ष्य हब में प्रवेश करें",
+    paidCardMentorTitle: "वैधानिक परामर्शदाता एवं विधिक सत्यापन",
+    paidCardMentorDesc: "मान्यता प्राप्त आयुष पेटेंट अटॉर्नी, पूर्व CGPDTM नियंत्रक और NBA विधिक विशेषज्ञ।",
+    paidCardMentorAction: "परामर्श बुक करें"
+  }
+};
 
 function toggleLanguage() {
   currentAyushLanguage = (currentAyushLanguage === "en") ? "hi" : "en";
@@ -3952,29 +4271,171 @@ function toggleLanguage() {
 }
 
 function updateLanguageUI() {
+  const isHi = currentAyushLanguage === "hi";
+  const dict = I18N[currentAyushLanguage] || I18N.en;
+
+  // 1. Language Button in Header
   const langBtn = document.getElementById("headerLangBtn");
   const langLabel = document.getElementById("headerLangLabel");
-  const promptInput = document.getElementById("userPromptInput");
-
-  if (currentAyushLanguage === "hi") {
-    if (langLabel) langLabel.textContent = "🌐 हिंदी";
-    if (langBtn) {
+  if (langLabel) langLabel.textContent = dict.headerLang;
+  if (langBtn) {
+    if (isHi) {
       langBtn.classList.add("hindi-active");
       langBtn.setAttribute("title", "भाषा बदलें (वर्तमान: हिंदी / अंग्रेजी के लिए क्लिक करें)");
-    }
-    if (promptInput) {
-      promptInput.setAttribute("placeholder", "आयुष फॉर्मूलेशन, पेटेंट (धारा 3(p)), राज्य लाइसेंसिंग या अनुपालन प्रश्न पूछें...");
-    }
-    showNotificationToast("🌐 भाषा बदली गई: हिंदी (Vernacular Mode Active)");
-  } else {
-    if (langLabel) langLabel.textContent = "🌐 EN / हिंदी";
-    if (langBtn) {
+    } else {
       langBtn.classList.remove("hindi-active");
       langBtn.setAttribute("title", "Switch Language (Current: English / Click for Hindi)");
     }
-    if (promptInput) {
-      promptInput.setAttribute("placeholder", "Ask any Ayush formulation, patent, or compliance query...");
-    }
+  }
+
+  // 2. Main Input & Dock
+  const promptInput = document.getElementById("userPromptInput");
+  if (promptInput) {
+    promptInput.setAttribute("placeholder", dict.inputPlaceholder);
+  }
+  const disclaimerEl = document.getElementById("dockDisclaimerText");
+  if (disclaimerEl) {
+    disclaimerEl.textContent = dict.dockDisclaimer;
+  }
+  const voiceBtn = document.getElementById("voiceMicBtn");
+  if (voiceBtn) {
+    voiceBtn.setAttribute("title", dict.micBtnTitle);
+  }
+  const docBtn = document.getElementById("docAttachBtn");
+  if (docBtn) {
+    docBtn.setAttribute("title", dict.docBtnTitle);
+  }
+  const sendBtn = document.getElementById("sendBtn");
+  if (sendBtn) {
+    sendBtn.setAttribute("title", dict.sendBtnTitle);
+  }
+
+  // 3. Hero Empty State Elements
+  const heroMainHeading = document.getElementById("heroMainHeading");
+  if (heroMainHeading) {
+    heroMainHeading.textContent = dict.heroTitle;
+  }
+  const heroSubHeading = document.getElementById("heroSubHeading");
+  if (heroSubHeading) {
+    heroSubHeading.textContent = dict.heroSub;
+  }
+
+  // Quick Chips
+  const chipMcpText = document.getElementById("heroChipMcpText");
+  if (chipMcpText) chipMcpText.textContent = dict.chipMcp;
+  const chipMcpBadge = document.getElementById("heroChipMcpBadge");
+  if (chipMcpBadge) chipMcpBadge.textContent = dict.chipMcpBadge;
+  const chipArchText = document.getElementById("heroChipArchText");
+  if (chipArchText) chipArchText.textContent = dict.chipArch;
+  const chipScannerText = document.getElementById("heroChipScannerText");
+  if (chipScannerText) chipScannerText.textContent = dict.chipScanner;
+
+  // 4 Suggestions Cards
+  const suggCard1Title = document.getElementById("suggCard1Title");
+  if (suggCard1Title) suggCard1Title.textContent = dict.card1Title;
+  const suggCard1Sub = document.getElementById("suggCard1Sub");
+  if (suggCard1Sub) suggCard1Sub.textContent = dict.card1Sub;
+
+  const suggCard2Title = document.getElementById("suggCard2Title");
+  if (suggCard2Title) suggCard2Title.textContent = dict.card2Title;
+  const suggCard2Sub = document.getElementById("suggCard2Sub");
+  if (suggCard2Sub) suggCard2Sub.textContent = dict.card2Sub;
+
+  const suggCard3Title = document.getElementById("suggCard3Title");
+  if (suggCard3Title) suggCard3Title.textContent = dict.card3Title;
+  const suggCard3Sub = document.getElementById("suggCard3Sub");
+  if (suggCard3Sub) suggCard3Sub.textContent = dict.card3Sub;
+
+  const suggCard4Title = document.getElementById("suggCard4Title");
+  if (suggCard4Title) suggCard4Title.textContent = dict.card4Title;
+  const suggCard4Sub = document.getElementById("suggCard4Sub");
+  if (suggCard4Sub) suggCard4Sub.textContent = dict.card4Sub;
+
+  // 4. Sidebar Elements
+  const sidebarNewChatText = document.getElementById("sidebarNewChatText");
+  if (sidebarNewChatText) sidebarNewChatText.textContent = dict.newInquiry;
+
+  const sidebarSavedChatsLabel = document.getElementById("sidebarSavedChatsLabel");
+  if (sidebarSavedChatsLabel) sidebarSavedChatsLabel.textContent = dict.savedChats;
+
+  const sidebarRegToolsLabel = document.getElementById("sidebarRegToolsLabel");
+  if (sidebarRegToolsLabel) sidebarRegToolsLabel.textContent = dict.regulatoryTools;
+
+  const sidebarItemPaidText = document.getElementById("sidebarItemPaidText");
+  if (sidebarItemPaidText) sidebarItemPaidText.textContent = dict.paidTier;
+
+  const sidebarItemScannerText = document.getElementById("sidebarItemScannerText");
+  if (sidebarItemScannerText) sidebarItemScannerText.textContent = dict.formulationScreener;
+
+  const sidebarItemArchText = document.getElementById("sidebarItemArchText");
+  if (sidebarItemArchText) sidebarItemArchText.textContent = dict.stategraphArch;
+
+  const sidebarItemMcpText = document.getElementById("sidebarItemMcpText");
+  if (sidebarItemMcpText) sidebarItemMcpText.textContent = dict.mcpTools;
+
+  const sidebarGoalRoadmapsLabel = document.getElementById("sidebarGoalRoadmapsLabel");
+  if (sidebarGoalRoadmapsLabel) sidebarGoalRoadmapsLabel.textContent = dict.goalRoadmaps;
+
+  const sidebarMentorAdvisoryLabel = document.getElementById("sidebarMentorAdvisoryLabel");
+  if (sidebarMentorAdvisoryLabel) sidebarMentorAdvisoryLabel.textContent = dict.mentorAdvisory;
+
+  const sidebarFooterTitle = document.getElementById("sidebarFooterTitle");
+  if (sidebarFooterTitle) sidebarFooterTitle.textContent = dict.stategraphEngine;
+
+  const sidebarModelText = document.getElementById("sidebarModelText");
+  if (sidebarModelText) sidebarModelText.textContent = dict.stategraphSub;
+
+  const brandSub = document.getElementById("brandSub");
+  if (brandSub) brandSub.textContent = dict.brandMinistry;
+
+  // 5. Header Buttons
+  const headerProBtnLabel = document.getElementById("headerProBtnLabel");
+  if (headerProBtnLabel) headerProBtnLabel.textContent = dict.headerPaid;
+
+  const headerMcpBtnSpan = document.getElementById("headerMcpBtnSpan");
+  if (headerMcpBtnSpan) headerMcpBtnSpan.textContent = dict.chipMcp.replace(" Protocol", "");
+
+  const headerSourcesBtnSpan = document.getElementById("headerSourcesBtnSpan");
+  if (headerSourcesBtnSpan) headerSourcesBtnSpan.textContent = dict.headerSources;
+
+  const headerArchBtnSpan = document.getElementById("headerArchBtnSpan");
+  if (headerArchBtnSpan) headerArchBtnSpan.textContent = dict.headerArch;
+
+  const headerSettingsBtnSpan = document.getElementById("headerSettingsBtnSpan");
+  if (headerSettingsBtnSpan) headerSettingsBtnSpan.textContent = dict.headerSettings;
+
+  // 6. Paid Tier Landing Elements
+  const paidMainTitle = document.querySelector(".paid-main-title");
+  if (paidMainTitle) paidMainTitle.textContent = dict.paidHeroTitle;
+
+  const paidSubTitle = document.querySelector(".paid-sub-title");
+  if (paidSubTitle) paidSubTitle.textContent = dict.paidHeroSub;
+
+  const cardChatTitle = document.querySelector("#cardNormalChatbot .paid-module-title");
+  if (cardChatTitle) cardChatTitle.textContent = dict.paidCardChatTitle;
+  const cardChatDesc = document.querySelector("#cardNormalChatbot .paid-module-desc");
+  if (cardChatDesc) cardChatDesc.textContent = dict.paidCardChatDesc;
+  const cardChatAction = document.querySelector("#cardNormalChatbot .paid-action-text");
+  if (cardChatAction) cardChatAction.textContent = dict.paidCardChatAction;
+
+  const cardGoalTitle = document.querySelector("#cardAchieveGoal .paid-module-title");
+  if (cardGoalTitle) cardGoalTitle.textContent = dict.paidCardGoalTitle;
+  const cardGoalDesc = document.querySelector("#cardAchieveGoal .paid-module-desc");
+  if (cardGoalDesc) cardGoalDesc.textContent = dict.paidCardGoalDesc;
+  const cardGoalAction = document.querySelector("#cardAchieveGoal .paid-action-text");
+  if (cardGoalAction) cardGoalAction.textContent = dict.paidCardGoalAction;
+
+  const cardMentorTitle = document.querySelector("#cardMentorship .paid-module-title");
+  if (cardMentorTitle) cardMentorTitle.textContent = dict.paidCardMentorTitle;
+  const cardMentorDesc = document.querySelector("#cardMentorship .paid-module-desc");
+  if (cardMentorDesc) cardMentorDesc.textContent = dict.paidCardMentorDesc;
+  const cardMentorAction = document.querySelector("#cardMentorship .paid-action-text");
+  if (cardMentorAction) cardMentorAction.textContent = dict.paidCardMentorAction;
+
+  // 7. Toast feedback
+  if (isHi) {
+    showNotificationToast("🌐 भाषा बदली गई: हिंदी (संपूर्ण इंटरफ़ेस हिंदी में सक्रिय)");
+  } else {
     showNotificationToast("🌐 Language switched: English");
   }
 }
@@ -3983,8 +4444,8 @@ function initLanguage() {
   const saved = localStorage.getItem("ayush_language");
   if (saved) {
     currentAyushLanguage = saved;
-    updateLanguageUI();
   }
+  updateLanguageUI();
 }
 
 /* ===================================================

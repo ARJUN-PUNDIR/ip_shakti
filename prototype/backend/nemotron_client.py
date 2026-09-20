@@ -190,7 +190,23 @@ MULTI-AGENT STATUTORY STATE-GRAPH CONTEXT:
         """
         grounding_context = self._build_grounding_context(state_context)
 
-        prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
+        if language == "hi":
+            prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
+Evaluate patentability and regulatory compliance under Indian Law in fluent, authoritative Hindi (हिंदी भाषा में संपूर्ण उत्तर दें):
+- User Inquiry: {user_query}
+{grounding_context}
+
+CRITICAL RULES:
+- Respond in fluent, formal Hindi (Devanagari script) using clean markdown. Keep statutory section citations clear (धारा 3(p), धारा 3(e), धारा 6, नियम 158-B) and Latin botanical names in parentheses.
+- Structure with:
+  ### 1. भारतीय पेटेंट कार्यालय (IPO) निष्कर्ष एवं धारा 3(p)/3(e) विश्लेषण
+  ### 2. राष्ट्रीय जैव विविधता प्राधिकरण (NBA) प्रपत्र 3 पूर्व अनुमोदन (धारा 6)
+  ### 3. राज्य आयुष लाइसेंसिंग प्राधिकरण (नियम 158-B शास्त्रीय बनाम प्रोप्राइटरी ASU)
+  ### 4. वैश्विक निर्यात सामंजस्य (US FDA DSHEA / EU THMPD)
+  ### 5. पेटेंट योग्य व्यावहारिक रणनीति एवं सहक्रियात्मक फॉर्मूलेशन रोडमैप
+- Output ONLY the final report in fluent Hindi. Start immediately with '###'. Under 350 words."""
+        else:
+            prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
 Evaluate patentability and regulatory compliance under Indian Law:
 - User Inquiry: {user_query}
 {grounding_context}
@@ -316,7 +332,23 @@ CRITICAL RULES:
         """
         grounding_context = self._build_grounding_context(state_context)
 
-        prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
+        if language == "hi":
+            prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
+Evaluate patentability and regulatory compliance under Indian Law in fluent, authoritative Hindi (हिंदी भाषा में संपूर्ण उत्तर दें):
+- User Inquiry: {user_query}
+{grounding_context}
+
+CRITICAL RULES:
+- Respond in fluent, formal Hindi (Devanagari script) using clean markdown. Keep statutory section citations clear (धारा 3(p), धारा 3(e), धारा 6, नियम 158-B) and Latin botanical names in parentheses.
+- Structure with:
+  ### 1. भारतीय पेटेंट कार्यालय (IPO) निष्कर्ष एवं धारा 3(p)/3(e) विश्लेषण
+  ### 2. राष्ट्रीय जैव विविधता प्राधिकरण (NBA) प्रपत्र 3 पूर्व अनुमोदन (धारा 6)
+  ### 3. राज्य आयुष लाइसेंसिंग प्राधिकरण (नियम 158-B शास्त्रीय बनाम प्रोप्राइटरी ASU)
+  ### 4. वैश्विक निर्यात सामंजस्य (US FDA DSHEA / EU THMPD)
+  ### 5. पेटेंट योग्य व्यावहारिक रणनीति एवं सहक्रियात्मक फॉर्मूलेशन रोडमैप
+- Output ONLY the final report in fluent Hindi. Start immediately with '###'. Under 350 words."""
+        else:
+            prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
 Evaluate patentability and regulatory compliance under Indian Law:
 - User Inquiry: {user_query}
 {grounding_context}

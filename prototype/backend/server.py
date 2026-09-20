@@ -8,7 +8,8 @@ import json
 import asyncio
 import uvicorn
 from typing import List, Optional, Dict, Any
-from fastapi import FastAPI, HTTPException, Response
+import io
+from fastapi import FastAPI, HTTPException, Response, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
@@ -39,6 +40,7 @@ class QueryRequest(BaseModel):
     domain: Optional[str] = "Ayurveda"
     language: Optional[str] = "en"
     scenario_id: Optional[str] = None
+    documents: Optional[List[Dict[str, Any]]] = None
 
 class ConfigRequest(BaseModel):
     provider: Optional[str] = None  # "nvidia", "openai", "ollama"
@@ -207,12 +209,96 @@ def get_graph_topology():
     """Returns nodes and edges of the Multi-Agent StateGraph for frontend visualization."""
     return regulatory_graph.get_topology()
 
+@app.post("/api/documents/parse")
+async def parse_document(file: UploadFile = File(...)):
+    """
+    Parses uploaded regulatory documents (PDF, DOCX, TXT, MD, CSV, JSON).
+    Extracts text content, scans for Ayush botanicals from BOTANICAL_DB,
+    and identifies statutory compliance clauses (Section 3(p), Rule 158-B, Form 3).
+    """
+    filename = file.filename or "uploaded_document"
+    contents = await file.read()
+    size_bytes = len(contents)
+    size_kb = round(size_bytes / 1024, 1)
+
+    ext = os.path.splitext(filename)[1].lower()
+    text = ""
+
+    try:
+        if ext == ".docx":
+            import docx
+            doc = docx.Document(io.BytesIO(contents))
+            paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+            text = "\n".join(paragraphs)
+        elif ext == ".pdf":
+            import pypdf
+            reader = pypdf.PdfReader(io.BytesIO(contents))
+            pages_text = []
+            for p in reader.pages:
+                extracted = p.extract_text()
+                if extracted:
+                    pages_text.append(extracted)
+            text = "\n".join(pages_text)
+        elif ext in [".txt", ".md", ".json", ".csv", ".tsv", ".rtf"]:
+            text = contents.decode("utf-8", errors="ignore")
+        else:
+            text = f"[Attached file: {filename} ({size_kb} KB)]"
+    except Exception as e:
+        print(f"[Document Parse Error for {filename}]: {e}")
+        text = f"[Uploaded document {filename} ({size_kb} KB)]"
+
+    # Detect botanicals from BOTANICAL_DB
+    text_lower = text.lower()
+    detected_botanicals = []
+    for bot_id, info in BOTANICAL_DB.items():
+        name_matches = [
+            info.get("latin_name", "").lower(),
+            info.get("common_name", "").lower(),
+            bot_id.lower()
+        ]
+        if any(nm and nm in text_lower for nm in name_matches):
+            detected_botanicals.append(info.get("common_name", bot_id))
+
+    # Detect statutory clauses
+    detected_clauses = []
+    if "3(p)" in text_lower or "traditional knowledge" in text_lower:
+        detected_clauses.append("Section 3(p) Traditional Knowledge")
+    if "3(e)" in text_lower or "admixture" in text_lower:
+        detected_clauses.append("Section 3(e) Mere Admixture")
+    if "158-b" in text_lower or "rule 158" in text_lower or "form 24-d" in text_lower:
+        detected_clauses.append("Rule 158-B ASU Licensing")
+    if "form 3" in text_lower or "section 6" in text_lower or "biodiversity" in text_lower or "nba" in text_lower:
+        detected_clauses.append("NBA Section 6 Prior Approval")
+
+    return {
+        "status": "success",
+        "filename": filename,
+        "size_kb": size_kb,
+        "word_count": len(text.split()),
+        "text": text[:12000],
+        "snippet": text[:220].strip().replace("\n", " "),
+        "botanicals_detected": list(dict.fromkeys(detected_botanicals))[:5],
+        "clauses_detected": detected_clauses
+    }
+
 @app.post("/api/query")
 def process_query(req: QueryRequest):
     domain = req.domain or "Ayurveda"
+    lang = req.language or "en"
     
+    # Enrich query with attached documents if present
+    effective_query = req.query
+    if req.documents:
+        doc_snippets = []
+        for d in req.documents:
+            fname = d.get("filename", "Attached Document")
+            d_text = d.get("text", "")[:3000]
+            d_bots = ", ".join(d.get("botanicals_detected", []))
+            doc_snippets.append(f"--- [ATTACHED REGULATORY DOCUMENT: {fname}] ---\n(Detected Botanicals: {d_bots or 'None'})\n{d_text}")
+        effective_query = f"{req.query}\n\n[CONTEXT FROM ATTACHED DOCUMENTS]:\n" + "\n\n".join(doc_snippets)
+
     # 1. Execute Multi-Agent StateGraph across all 8 nodes
-    state = regulatory_graph.invoke(req.query, domain=domain)
+    state = regulatory_graph.invoke(effective_query, domain=domain, language=lang)
     
     # 2. Query Nemotron NIM / Ollama with grounded StateGraph context
     llm_live = False
@@ -222,9 +308,9 @@ def process_query(req: QueryRequest):
     
     try:
         llm_result = nemotron_client.query(
-            req.query,
+            effective_query,
             domain=domain,
-            language="en",
+            language=lang,
             state_context=state
         )
         if llm_result.get("status") == "success" and llm_result.get("raw_response"):
@@ -244,6 +330,7 @@ def process_query(req: QueryRequest):
         "status": "success",
         "query": req.query,
         "domain": domain,
+        "language": lang,
         "title": state.get("title", "Multi-Agent Regulatory Assessment"),
         "detected_botanicals": state.get("detected_botanicals", []),
         "dosage_form": state.get("dosage_form", ""),
@@ -278,9 +365,20 @@ async def process_query_stream(req: QueryRequest):
     4. Emits 'done' event with final metadata and model telemetry.
     """
     domain = req.domain or "Ayurveda"
+    lang = req.language or "en"
+
+    effective_query = req.query
+    if req.documents:
+        doc_snippets = []
+        for d in req.documents:
+            fname = d.get("filename", "Attached Document")
+            d_text = d.get("text", "")[:3000]
+            d_bots = ", ".join(d.get("botanicals_detected", []))
+            doc_snippets.append(f"--- [ATTACHED REGULATORY DOCUMENT: {fname}] ---\n(Detected Botanicals: {d_bots or 'None'})\n{d_text}")
+        effective_query = f"{req.query}\n\n[CONTEXT FROM ATTACHED DOCUMENTS]:\n" + "\n\n".join(doc_snippets)
 
     # 1. StateGraph Multi-Agent Execution
-    state = regulatory_graph.invoke(req.query, domain=domain)
+    state = regulatory_graph.invoke(effective_query, domain=domain, language=lang)
 
     ipo_eval = state.get("ipo_evaluation", {})
     nba_eval = state.get("nba_evaluation", {})
@@ -291,6 +389,7 @@ async def process_query_stream(req: QueryRequest):
         "status": "success",
         "query": req.query,
         "domain": domain,
+        "language": lang,
         "title": state.get("title", "Multi-Agent Regulatory Assessment"),
         "detected_botanicals": state.get("detected_botanicals", []),
         "dosage_form": state.get("dosage_form", ""),
@@ -319,7 +418,7 @@ async def process_query_stream(req: QueryRequest):
         source = "state_graph_rules"
         model_name = nemotron_client.model
 
-        async for chunk in nemotron_client.stream_query(req.query, domain=domain, state_context=state):
+        async for chunk in nemotron_client.stream_query(effective_query, domain=domain, language=lang, state_context=state):
             token = chunk.get("token", "")
             source = chunk.get("source", source)
             model_name = chunk.get("model", model_name)

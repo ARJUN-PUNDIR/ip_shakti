@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=28">
+  <link rel="stylesheet" href="/static/css/style.css?v=33">
 </head>
 <body>
 
@@ -19,38 +19,44 @@
           <div class="brand-dot"></div>
           <div class="brand-text">
             <span class="brand-name">IP-SAKTI</span>
-            <span class="brand-sub">Ministry of Ayush</span>
+            <span class="brand-sub" id="brandSub">Ministry of Ayush</span>
           </div>
         </div>
 
         <button class="new-chat-btn" onclick="startNewChat()">
           <span>+</span>
-          <span>New Inquiry</span>
+          <span id="sidebarNewChatText">New Inquiry</span>
         </button>
       </div>
 
       <!-- Recent / Saved Inquiries (Normal Chatbot Style) -->
       <div class="sidebar-threads" id="sidebarChatbotThreads">
-        <div class="threads-label">SAVED CHATS</div>
+        <div class="threads-label" id="sidebarSavedChatsLabel">SAVED CHATS</div>
         <div id="sidebarUserChatsList">
           <!-- Populated dynamically via app.js -->
         </div>
 
-        <div class="threads-label" style="margin-top: 14px;">REGULATORY TOOLS</div>
+        <div class="threads-label" id="sidebarRegToolsLabel" style="margin-top: 14px;">REGULATORY TOOLS</div>
         <div class="thread-item pro-sidebar-item" onclick="toggleTierMode()" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25);">
           <span class="thread-icon" style="color: #D97706;">★</span>
-          <div class="thread-text" style="font-weight: 600; color: #92400E;">Paid Tier</div>
-          <span class="sidebar-pro-pill" style="font-size: 10px; font-weight: 700; background: #D97706; color: #FFF; padding: 1px 6px; border-radius: 4px; margin-left: auto;">PAID</span>
+          <div class="thread-text" id="sidebarItemPaidText" style="font-weight: 600; color: #92400E;">Assist Plus</div>
+          <span class="sidebar-pro-pill" style="font-size: 10px; font-weight: 700; background: #D97706; color: #FFF; padding: 1px 6px; border-radius: 4px; margin-left: auto;">PLUS</span>
         </div>
 
         <div class="thread-item" onclick="openScannerModal()">
           <span class="thread-icon">🔬</span>
-          <div class="thread-text">Formulation TKDL Screener</div>
+          <div class="thread-text" id="sidebarItemScannerText">Formulation TKDL Screener</div>
         </div>
 
         <div class="thread-item" onclick="openArchitectureModal()">
           <span class="thread-icon">⚡</span>
-          <div class="thread-text">StateGraph Architecture</div>
+          <div class="thread-text" id="sidebarItemArchText">StateGraph Architecture</div>
+        </div>
+
+        <div class="thread-item" onclick="openMcpModal()" style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25);">
+          <span class="thread-icon" style="color: #4F46E5;">🔌</span>
+          <div class="thread-text" id="sidebarItemMcpText" style="font-weight: 600; color: #3730A3;">MCP Protocol Tools</div>
+          <span class="sidebar-pro-pill" style="font-size: 10px; font-weight: 700; background: #4F46E5; color: #FFF; padding: 1px 6px; border-radius: 4px; margin-left: auto;">MCP</span>
         </div>
       </div>
 
@@ -59,7 +65,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 0 4px;">
           <div class="threads-label" style="margin: 0; color: #1D4ED8; font-weight: 800; display: flex; align-items: center; gap: 6px;">
             <span>🎯</span>
-            <span>GOAL ROADMAPS</span>
+            <span id="sidebarGoalRoadmapsLabel">GOAL ROADMAPS</span>
           </div>
           <button class="goal-new-btn-sidebar" onclick="resetAchieveGoalView()" title="Create New Goal">
             <span>+ New</span>
@@ -75,7 +81,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 0 4px;">
           <div class="threads-label" style="margin: 0; color: #7C3AED; font-weight: 800; display: flex; align-items: center; gap: 6px;">
             <span>🏛️</span>
-            <span>MENTOR ADVISORY</span>
+            <span id="sidebarMentorAdvisoryLabel">MENTOR ADVISORY</span>
           </div>
           <button class="goal-new-btn-sidebar" style="background: #EDE9FE; color: #6D28D9; border-color: #DDD6FE;" onclick="refreshMentorsView()" title="All Mentors Directory">
             <span>Directory</span>
@@ -91,7 +97,7 @@
         <div class="model-pill-clean" onclick="openArchitectureModal()">
           <div class="model-status-indicator"></div>
           <div class="model-meta">
-            <div class="model-title">StateGraph Engine</div>
+            <div class="model-title" id="sidebarFooterTitle">StateGraph Engine</div>
             <div class="model-id" id="sidebarModelText">8 Nodes • 12 Statutory Edges</div>
           </div>
           <span class="settings-gear">⚡</span>
@@ -132,23 +138,26 @@
         </div>
 
         <div class="header-right-group">
-          <button class="header-pro-btn" id="headerProBtn" onclick="toggleTierMode()" title="Switch between Free and Paid Tier">
+          <button class="header-pro-btn" id="headerProBtn" onclick="toggleTierMode()" title="Switch between Free and Assist Plus">
             <span class="pro-sparkle">★</span>
-            <span class="pro-label">Paid</span>
-            <span class="pro-badge">PAID</span>
+            <span class="pro-label" id="headerProBtnLabel">Assist Plus</span>
+            <span class="pro-badge">PLUS</span>
           </button>
           <button class="header-icon-btn lang-toggle-btn" id="headerLangBtn" onclick="toggleLanguage()" title="Switch Language (English / हिंदी)">
             <span class="lang-icon">🌐</span>
             <span class="lang-label" id="headerLangLabel">EN / हिंदी</span>
           </button>
-          <button class="header-icon-btn sources-toggle-btn" id="headerSourcesBtn" onclick="openSourcesModal()" title="Verified Statutory &amp; Regulatory Sources Directory">
-            <span>📚 Sources</span>
+          <button class="header-icon-btn mcp-highlight-btn" id="headerMcpBtn" onclick="openMcpModal()" title="Model Context Protocol (MCP) Server & Tools">
+            <span id="headerMcpBtnSpan">🔌 MCP Tools</span>
           </button>
-          <button class="header-icon-btn" onclick="openArchitectureModal()" title="Multi-Agent StateGraph Architecture">
-            <span>⚡ Architecture</span>
+          <button class="header-icon-btn sources-toggle-btn" id="headerSourcesBtn" onclick="openSourcesModal()" title="Verified Statutory & Regulatory Sources Directory">
+            <span id="headerSourcesBtnSpan">📚 Sources</span>
           </button>
-          <button class="header-icon-btn" onclick="openModelConfigModal()" title="Model &amp; API Configuration">
-            <span>⚙️ Settings</span>
+          <button class="header-icon-btn" id="headerArchBtn" onclick="openArchitectureModal()" title="Multi-Agent StateGraph Architecture">
+            <span id="headerArchBtnSpan">⚡ Architecture</span>
+          </button>
+          <button class="header-icon-btn" id="headerSettingsBtn" onclick="openModelConfigModal()" title="Model & API Configuration">
+            <span id="headerSettingsBtnSpan">⚙️ Settings</span>
           </button>
         </div>
       </header>
@@ -243,28 +252,42 @@
         <!-- Empty State Hero (ChatGPT / Nothing Style) -->
         <div class="chat-empty-state" id="emptyStateHero">
           <div class="empty-icon-circle">🏛️</div>
-          <h1 class="empty-heading">What Ayush regulation, patent, or compliance can I assist with today?</h1>
-          <p class="empty-sub">Evidence-first regulatory intelligence grounded across Indian (IPO, NBA, Ayush) and Global (WIPO, USPTO, EMA, FDA) regimes.</p>
+          <h1 class="empty-heading" id="heroMainHeading">What Ayush regulation, patent, or compliance can I assist with today?</h1>
+          <p class="empty-sub" id="heroSubHeading">Evidence-first regulatory intelligence grounded across Indian (IPO, NBA, Ayush) and Global (WIPO, USPTO, EMA, FDA) regimes.</p>
+
+          <!-- Interactive Feature Quick Chips -->
+          <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 22px; flex-wrap: wrap;">
+            <button class="mcp-highlight-btn" id="heroChipMcp" onclick="openMcpModal()" style="padding: 7px 16px; border-radius: 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+              <span id="heroChipMcpText">🔌 Model Context Protocol (MCP) Tools</span>
+              <span id="heroChipMcpBadge" style="background: rgba(255,255,255,0.25); color: #FFF; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700;">6 LIVE TOOLS</span>
+            </button>
+            <button class="header-icon-btn" id="heroChipArch" onclick="openArchitectureModal()" style="padding: 7px 16px; border-radius: 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; background: #FFFFFF; border: 1px solid #CBD5E1;">
+              <span id="heroChipArchText">⚡ StateGraph 8-Node Architecture</span>
+            </button>
+            <button class="header-icon-btn" id="heroChipScanner" onclick="openScannerModal()" style="padding: 7px 16px; border-radius: 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; background: #FFFFFF; border: 1px solid #CBD5E1;">
+              <span id="heroChipScannerText">🔬 TKDL Formulation Screener</span>
+            </button>
+          </div>
 
           <div class="prompt-suggestions-grid">
-            <button class="suggestion-card" onclick="submitPrompt('Can I patent an Ayurvedic topical pain relief balm containing Curcumin and Wintergreen Oil in India?')">
-              <div class="card-prompt-title">Can I patent an Ayurvedic pain relief balm?</div>
-              <div class="card-prompt-sub">Curcumin + Wintergreen Oil Section 3(p) & 3(e) check</div>
+            <button class="suggestion-card" id="suggCard1" onclick="handleSuggestionClick(1)">
+              <div class="card-prompt-title" id="suggCard1Title">Can I patent an Ayurvedic pain relief balm?</div>
+              <div class="card-prompt-sub" id="suggCard1Sub">Curcumin + Wintergreen Oil Section 3(p) & 3(e) check</div>
             </button>
 
-            <button class="suggestion-card" onclick="submitPrompt('What are the statutory requirements to export standardized Ashwagandha extract to Germany under EU THMPD?')">
-              <div class="card-prompt-title">Exporting Ashwagandha to Germany</div>
-              <div class="card-prompt-sub">EU THMPD 15-year rule & NBA Form 1 export clearance</div>
+            <button class="suggestion-card" id="suggCard2" onclick="handleSuggestionClick(2)">
+              <div class="card-prompt-title" id="suggCard2Title">Exporting Ashwagandha to Germany</div>
+              <div class="card-prompt-sub" id="suggCard2Sub">EU THMPD 15-year rule & NBA Form 1 export clearance</div>
             </button>
 
-            <button class="suggestion-card" onclick="submitPrompt('What is the difference between licensing a Classical Ayurvedic Cough Syrup versus a Proprietary Syrup under Rule 158-B?')">
-              <div class="card-prompt-title">Classical vs Proprietary Cough Syrup</div>
-              <div class="card-prompt-sub">Rule 158-B safety, acute toxicity & pilot efficacy data</div>
+            <button class="suggestion-card" id="suggCard3" onclick="handleSuggestionClick(3)">
+              <div class="card-prompt-title" id="suggCard3Title">Classical vs Proprietary Cough Syrup</div>
+              <div class="card-prompt-sub" id="suggCard3Sub">Rule 158-B safety, acute toxicity & pilot efficacy data</div>
             </button>
 
-            <button class="suggestion-card" onclick="submitPrompt('I am an Unani Hakim. Can I patent a topical ointment made with Asgandh Nagori and Filfil Siyah for arthritis?')">
-              <div class="card-prompt-title">🌿 Hakim Unani Dialect Normalizer</div>
-              <div class="card-prompt-sub">Asgandh Nagori & Filfil Siyah mapped to UPI Monographs</div>
+            <button class="suggestion-card" id="suggCard4" onclick="handleSuggestionClick(4)">
+              <div class="card-prompt-title" id="suggCard4Title">🌿 Hakim Unani Dialect Normalizer</div>
+              <div class="card-prompt-sub" id="suggCard4Sub">Asgandh Nagori & Filfil Siyah mapped to UPI Monographs</div>
             </button>
           </div>
         </div>
@@ -275,10 +298,22 @@
 
       <!-- Floating Bottom Input Pill (ChatGPT / Claude / Apple Style) -->
       <div class="chat-input-dock">
+        <!-- Attached Documents Tray -->
+        <div class="attached-docs-tray hidden" id="attachedDocsTray"></div>
+
         <div class="input-pill-wrapper">
-          <button class="input-action-btn mic-btn" id="voiceMicBtn" title="Speak via Web Speech Recognition (English font)">
+          <button class="input-action-btn" onclick="openMcpModal()" title="Open Model Context Protocol (MCP) Tools" style="margin-right: 4px; font-size: 15px;">
+            🔌
+          </button>
+
+          <button class="input-action-btn mic-btn" id="voiceMicBtn" title="Speak via Web Speech Recognition (Voice Query)">
             🎙️
           </button>
+
+          <button class="input-action-btn doc-attach-btn" id="docAttachBtn" onclick="triggerDocUpload()" title="Attach Document / Research Paper / Formulation Spec (PDF, DOCX, TXT, Image)" style="margin-right: 4px; font-size: 16px;">
+            📎
+          </button>
+          <input type="file" id="docFileInput" style="display: none;" multiple accept=".pdf,.docx,.doc,.txt,.md,.rtf,.json,.csv,image/*" onchange="handleDocFilesSelected(event)">
 
           <textarea 
             id="userPromptInput" 
@@ -288,11 +323,11 @@
             onkeydown="handleKeyDown(event)"
           ></textarea>
 
-          <button class="send-btn" id="sendBtn" onclick="handleSend()">
+          <button class="send-btn" id="sendBtn" onclick="handleSend()" title="Send Regulatory Inquiry">
             ↑
           </button>
         </div>
-        <div class="dock-disclaimer">
+        <div class="dock-disclaimer" id="dockDisclaimerText">
           IP-SAKTI Sahayak deterministically grounds all statements against official government gazettes. Verify with statutory authorities before legal filing.
         </div>
       </div>
@@ -302,7 +337,7 @@
         <!-- Paid Tier Executive Hero Header -->
         <div class="paid-hero-header">
           <div class="paid-hero-badge-row">
-            <span class="paid-crown-badge">★ IP-SAKTI PAID TIER</span>
+            <span class="paid-crown-badge">★ IP-SAKTI ASSIST PLUS</span>
             <span class="paid-auth-badge">Executive Workspace Active</span>
           </div>
           <h1 class="paid-main-title">Regulatory Intelligence &amp; Milestone Suite</h1>
@@ -988,6 +1023,7 @@
         </div>
       </div>
       <div class="modal-sheet-footer">
+        <button class="btn-confirm mcp-highlight-btn" onclick="closeArchitectureModal(); openMcpModal();" style="margin-right: 8px;">🔌 Open MCP Protocol Tools</button>
         <button class="btn-confirm" onclick="closeArchitectureModal()">Close Architecture</button>
       </div>
     </div>
@@ -1317,7 +1353,7 @@
       <div class="modal-sheet-footer" id="schedModalFooter">
         <button class="btn-cancel" onclick="closeMentorScheduleModal()">Cancel</button>
         <button class="btn-confirm" id="confirmSchedBtn" onclick="confirmMeetingBooking()">
-          Confirm Booking (Included in Paid Tier)
+          Confirm Booking (Included in Assist Plus)
         </button>
       </div>
     </div>
@@ -1429,6 +1465,6 @@
     </div>
   </div>
 
-  <script src="/static/js/app.js?v=28"></script>
+  <script src="/static/js/app.js?v=34"></script>
 </body>
 </html>
