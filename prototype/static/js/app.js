@@ -353,8 +353,10 @@ function submitPrompt(promptText) {
 }
 
 function handleSuggestionClick(num) {
+  const isIntl = currentJurisdiction === "international";
   const dict = (typeof I18N !== "undefined" && I18N[currentAyushLanguage]) ? I18N[currentAyushLanguage] : I18N.en;
-  const promptText = dict[`card${num}Prompt`];
+  const promptKey = isIntl ? `intlCard${num}Prompt` : `card${num}Prompt`;
+  const promptText = dict[promptKey] || dict[`card${num}Prompt`];
   submitPrompt(promptText);
 }
 
@@ -1576,6 +1578,21 @@ let proProjectsList = [];
 let currentProProjectId = "proj_ayur_rheuma";
 let currentSelectedStageId = "stage_3";
 
+function updateTierModeButton() {
+  const headerProBtn = document.getElementById("headerProBtn");
+  if (!headerProBtn) return;
+  const isHi = (typeof currentAyushLanguage !== "undefined" && currentAyushLanguage === "hi");
+  if (currentTierMode === "paid") {
+    headerProBtn.classList.add("paid-active");
+    headerProBtn.title = isHi ? "चैटबॉट पर वापस जाएं" : "Return to Chatbot";
+    headerProBtn.innerHTML = `<span class="pro-sparkle">💬</span><span class="pro-label" id="headerProBtnLabel">${isHi ? "चैटबॉट" : "Chatbot"}</span>`;
+  } else {
+    headerProBtn.classList.remove("paid-active");
+    headerProBtn.title = isHi ? "असिस्ट प्लस पर जाएं" : "Switch to Assist Plus";
+    headerProBtn.innerHTML = `<span class="pro-sparkle">★</span><span class="pro-label" id="headerProBtnLabel">${isHi ? "असिस्ट प्लस" : "Assist Plus"}</span>`;
+  }
+}
+
 function toggleTierMode() {
   if (currentTierMode === "free") {
     openPaidHub();
@@ -1591,7 +1608,6 @@ function openPaidHub() {
   const proContainer = document.getElementById("proStudioContainer");
   const achieveContainer = document.getElementById("achieveGoalContainer");
   const mentorshipContainer = document.getElementById("mentorshipGatewayContainer");
-  const headerProBtn = document.getElementById("headerProBtn");
   const modulesGrid = document.getElementById("paidModulesGrid");
   const sidebar = document.getElementById("chatSidebar");
   const mentorshipThreads = document.getElementById("sidebarMentorshipThreads");
@@ -1599,7 +1615,7 @@ function openPaidHub() {
   const chatHeader = document.querySelector(".chat-header");
   if (chatHeader) chatHeader.classList.remove("hidden");
 
-  // Per user request: Hide left sidebar on the Paid landing page so 3 cards take full center focus
+  // Hide left sidebar on the Paid landing page so cards take full center focus
   if (sidebar) sidebar.classList.add("hidden");
   if (mentorshipThreads) mentorshipThreads.classList.add("hidden");
 
@@ -1610,11 +1626,7 @@ function openPaidHub() {
   if (proContainer) proContainer.classList.remove("hidden");
   if (modulesGrid) modulesGrid.classList.remove("hidden");
 
-  if (headerProBtn) {
-    headerProBtn.classList.add("paid-active");
-    headerProBtn.title = "Go back to Free Tier";
-    headerProBtn.innerHTML = `<span class="pro-sparkle">←</span><span class="pro-label">Free Tier</span>`;
-  }
+  updateTierModeButton();
 }
 
 function returnToFreeTier() {
@@ -1624,7 +1636,6 @@ function returnToFreeTier() {
   const proContainer = document.getElementById("proStudioContainer");
   const achieveContainer = document.getElementById("achieveGoalContainer");
   const mentorshipContainer = document.getElementById("mentorshipGatewayContainer");
-  const headerProBtn = document.getElementById("headerProBtn");
   const sidebar = document.getElementById("chatSidebar");
   const chatbotThreads = document.getElementById("sidebarChatbotThreads");
   const goalThreads = document.getElementById("sidebarGoalThreads");
@@ -1647,21 +1658,17 @@ function returnToFreeTier() {
   // Close any open mentor modals
   closeMentorModals();
 
-  if (headerProBtn) {
-    headerProBtn.classList.remove("paid-active");
-    headerProBtn.title = "Switch between Free and Assist Plus";
-    headerProBtn.innerHTML = `<span class="pro-sparkle">★</span><span class="pro-label">Assist Plus</span><span class="pro-badge">PLUS</span>`;
-  }
+  updateTierModeButton();
 }
 
 function openPaidChatbot() {
-  // Directly opens the chatbot interface exactly like the free option
+  // Directly opens the chatbot interface from paid view
+  currentTierMode = "free";
   const chatScroll = document.getElementById("chatScrollArea");
   const chatDock = document.querySelector(".chat-input-dock");
   const proContainer = document.getElementById("proStudioContainer");
   const achieveContainer = document.getElementById("achieveGoalContainer");
   const mentorshipContainer = document.getElementById("mentorshipGatewayContainer");
-  const headerProBtn = document.getElementById("headerProBtn");
   const sidebar = document.getElementById("chatSidebar");
   const chatbotThreads = document.getElementById("sidebarChatbotThreads");
   const goalThreads = document.getElementById("sidebarGoalThreads");
@@ -1681,12 +1688,7 @@ function openPaidChatbot() {
   if (chatScroll) chatScroll.classList.remove("hidden");
   if (chatDock) chatDock.classList.remove("hidden");
 
-  // Keep button as "← Free Tier"
-  if (headerProBtn) {
-    headerProBtn.classList.add("paid-active");
-    headerProBtn.title = "Go back to Free Tier";
-    headerProBtn.innerHTML = `<span class="pro-sparkle">←</span><span class="pro-label">Free Tier</span>`;
-  }
+  updateTierModeButton();
 }
 
 // ===================================================
@@ -1834,12 +1836,8 @@ function openAchieveGoalSection() {
   // Render dedicated goal history in sidebar
   renderGoalHistory();
 
-  // Keep button as "← Free Tier"
-  if (headerProBtn) {
-    headerProBtn.classList.add("paid-active");
-    headerProBtn.title = "Go back to Free Tier";
-    headerProBtn.innerHTML = `<span class="pro-sparkle">←</span><span class="pro-label">Free Tier</span>`;
-  }
+  // Update tier mode button
+  updateTierModeButton();
 }
 
 function handleAchieveInputKey(e) {
@@ -2848,12 +2846,8 @@ function openMentorshipSection() {
   const chatHeader = document.querySelector(".chat-header");
   if (chatHeader) chatHeader.classList.add("hidden");
 
-  // Keep button as "← Free Tier"
-  if (headerProBtn) {
-    headerProBtn.classList.add("paid-active");
-    headerProBtn.title = "Go back to Free Tier";
-    headerProBtn.innerHTML = `<span class="pro-sparkle">←</span><span class="pro-label">Free Tier</span>`;
-  }
+  // Update tier mode button
+  updateTierModeButton();
 
   // Update roadmap sync banner
   updateLinkedRoadmapBanner();
@@ -4157,22 +4151,37 @@ const I18N = {
   en: {
     heroTitle: "What Ayush regulation, patent, or compliance can I assist with today?",
     heroSub: "Evidence-first regulatory intelligence grounded across Indian (IPO, NBA, Ayush) and Global (WIPO, USPTO, EMA, FDA) regimes.",
-    chipMcp: "🔌 Model Context Protocol (MCP) Tools",
-    chipMcpBadge: "6 LIVE TOOLS",
-    chipArch: "⚡ StateGraph 8-Node Architecture",
-    chipScanner: "🔬 TKDL Formulation Screener",
+    indiaHeroSub: "Evidence-first regulatory intelligence grounded across Indian Regimes (Patents Act 1970, NBA Biological Diversity Act, Rule 158-B & FSSAI).",
+    intlHeroSub: "Evidence-first regulatory intelligence grounded across Global Regimes (WIPO GRATK Treaty 2024, CBD Nagoya ABS, EU THMPD & US FDA DSHEA).",
+    
+    // Domestic (India) Suggestion Cards
     card1Title: "Can I patent an Ayurvedic pain relief balm?",
     card1Sub: "Curcumin + Wintergreen Oil Section 3(p) & 3(e) check",
     card1Prompt: "Can I patent an Ayurvedic topical pain relief balm containing Curcumin and Wintergreen Oil in India?",
-    card2Title: "Exporting Ashwagandha to Germany",
-    card2Sub: "EU THMPD 15-year rule & NBA Form 1 export clearance",
-    card2Prompt: "What are the statutory requirements to export standardized Ashwagandha extract to Germany under EU THMPD?",
-    card3Title: "Classical vs Proprietary Cough Syrup",
-    card3Sub: "Rule 158-B safety, acute toxicity & pilot efficacy data",
-    card3Prompt: "What is the difference between licensing a Classical Ayurvedic Cough Syrup versus a Proprietary Syrup under Rule 158-B?",
-    card4Title: "🌿 Hakim Unani Dialect Normalizer",
-    card4Sub: "Asgandh Nagori & Filfil Siyah mapped to UPI Monographs",
-    card4Prompt: "I am an Unani Hakim. Can I patent a topical ointment made with Asgandh Nagori and Filfil Siyah for arthritis?",
+    card2Title: "Classical vs Proprietary Cough Syrup",
+    card2Sub: "Rule 158-B safety, acute toxicity & pilot efficacy data",
+    card2Prompt: "What is the difference between licensing a Classical Ayurvedic Cough Syrup versus a Proprietary Syrup under Rule 158-B?",
+    card3Title: "FSSAI Ayurveda Aahar vs Drug Boundary",
+    card3Sub: "Regulation 2022 non-medicinal dietary boundary & logo rules",
+    card3Prompt: "What are the regulatory differences and labeling rules for launching an herbal recipe as an FSSAI Ayurveda-Aahar versus an Ayush ASU Drug?",
+    card4Title: "🌿 DMROA 1954 Prohibited Disease Screener",
+    card4Sub: "Section 3 schedule check for misleading therapeutic claims",
+    card4Prompt: "Can an Ayurvedic formulation advertise therapeutic claims for arthritis or diabetes under the Drugs and Magic Remedies Act 1954?",
+
+    // International Suggestion Cards
+    intlCard1Title: "WIPO GRATK Treaty 2024 Patent Disclosure",
+    intlCard1Sub: "Mandatory genetic resource origin & TK declaration for PCT",
+    intlCard1Prompt: "What are the mandatory disclosure requirements for genetic resources and traditional knowledge under the WIPO GRATK Treaty 2024 for PCT patent filings?",
+    intlCard2Title: "EU THMPD 15-Year Rule for Herbal Export",
+    intlCard2Sub: "Directive 2004/24/EC traditional use proof in Germany/France",
+    intlCard2Prompt: "How do I prove 15-year European and 30-year overall traditional use under EU Directive 2004/24/EC (THMPD) to export standardized Ashwagandha extract to Germany?",
+    intlCard3Title: "US FDA DSHEA Dietary Supplement Route",
+    intlCard3Sub: "Structure/function disclaimer vs CDER Botanical Drug IND",
+    intlCard3Prompt: "Can I sell an Ayurvedic formulation in the United States as a dietary supplement under DSHEA without filing a CDER Botanical Drug IND?",
+    intlCard4Title: "Nagoya Protocol ABS Clearing-House (IRCC)",
+    intlCard4Sub: "Prior Informed Consent & Mutually Agreed Terms compliance",
+    intlCard4Prompt: "What Internationally Recognized Certificate of Compliance (IRCC) documentation is required under the Nagoya Protocol ABS Clearing-House for cross-border Ayurvedic R&D?",
+
     inputPlaceholder: "Ask anything about Ayush patents, NBA approvals, licensing, or global export...",
     dockDisclaimer: "IP-SAKTI Sahayak deterministically grounds all statements against official government gazettes. Verify with statutory authorities before legal filing.",
     micBtnTitle: "Speak via Web Speech Recognition (Voice Query)",
@@ -4194,7 +4203,8 @@ const I18N = {
     headerArch: "⚡ Architecture",
     headerSettings: "⚙️ Settings",
     headerPaid: "Assist Plus",
-    headerLang: "🌐 EN / हिंदी",
+    headerChatbot: "Chatbot",
+    headerLang: "English ▾",
     paidHeroTitle: "Regulatory Intelligence & Milestone Suite",
     paidHeroSub: "Select an authorized module to proceed with conversational AI inquiry, multi-stage compliance execution, or statutory advisory.",
     paidCardChatTitle: "Normal Chatbot",
@@ -4210,22 +4220,37 @@ const I18N = {
   hi: {
     heroTitle: "आज मैं आयुष नियमन, पेटेंट या अनुपालन में आपकी क्या सहायता कर सकता हूँ?",
     heroSub: "भारतीय (IPO, NBA, आयुष) और वैश्विक (WIPO, USPTO, EMA, FDA) व्यवस्थाओं पर आधारित साक्ष्य-प्रधान नियामक बुद्धिमत्ता।",
-    chipMcp: "🔌 मॉडल कॉन्टेक्स्ट प्रोटोकॉल (MCP) टूल्स",
-    chipMcpBadge: "6 लाइव टूल्स",
-    chipArch: "⚡ स्टेटग्राफ 8-नोड आर्किटेक्चर",
-    chipScanner: "🔬 TKDL फॉर्मूलेशन परीक्षक",
+    indiaHeroSub: "भारतीय व्यवस्थाओं (IPO पेटेंट अधिनियम 1970, NBA जैव विविधता अधिनियम, आयुष नियम 158-B एवं FSSAI) पर आधारित साक्ष्य-प्रधान नियामक बुद्धिमत्ता।",
+    intlHeroSub: "वैश्विक व्यवस्थाओं (WIPO GRATK संधि 2024, CBD नागोया ABS, EU THMPD एवं US FDA DSHEA) पर आधारित साक्ष्य-प्रधान नियामक बुद्धिमत्ता।",
+
+    // Domestic (India) Suggestion Cards
     card1Title: "क्या मैं आयुर्वेदिक दर्द निवारक बाम पेटेंट कर सकता हूँ?",
     card1Sub: "करक्यूमिन + विंटरग्रीन तेल धारा 3(p) व 3(e) जांच",
     card1Prompt: "क्या मैं भारत में करक्यूमिन और विंटरग्रीन तेल युक्त एक आयुर्वेदिक दर्द निवारक बाम को पेटेंट करा सकता हूँ?",
-    card2Title: "जर्मनी को अश्वगंधा का निर्यात",
-    card2Sub: "EU THMPD 15-वर्षीय नियम एवं NBA फॉर्म 1 निर्यात मंजूरी",
-    card2Prompt: "EU THMPD के तहत जर्मनी को मानकीकृत अश्वगंधा अर्क निर्यात करने के लिए क्या वैधानिक आवश्यकताएं हैं?",
-    card3Title: "शास्त्रीय बनाम प्रोप्राइटरी कफ सिरप",
-    card3Sub: "नियम 158-B सुरक्षा, तीव्र विषाक्तता व प्रायोगिक प्रभावकारिता डेटा",
-    card3Prompt: "नियम 158-B के तहत शास्त्रीय आयुर्वेदिक कफ सिरप बनाम प्रोप्राइटरी सिरप के लाइसेंसिंग में क्या अंतर है?",
-    card4Title: "🌿 हकीम यूनानी बोली सामान्यीकरण",
-    card4Sub: "असगंद नागोरी और फिलफिल सियाह को UPI मोनोग्राफ में मैप करें",
-    card4Prompt: "मैं एक यूनानी हकीम हूँ। क्या मैं गठिया के लिए असगंद नागोरी और फिलफिल सियाह से बने लेप को पेटेंट कर सकता हूँ?",
+    card2Title: "शास्त्रीय बनाम प्रोप्राइटरी कफ सिरप",
+    card2Sub: "नियम 158-B सुरक्षा, तीव्र विषाक्तता व प्रायोगिक प्रभावकारिता डेटा",
+    card2Prompt: "नियम 158-B के तहत शास्त्रीय आयुर्वेदिक कफ सिरप बनाम प्रोप्राइटरी सिरप के लाइसेंसिंग में क्या अंतर है?",
+    card3Title: "FSSAI आयुर्वेद आहार बनाम औषधि लाइसेंसिंग",
+    card3Sub: "विनियमन 2022 गैर-औषधीय आहार अनुपालन और लोगो नियम",
+    card3Prompt: "एफएसएसएआई आयुर्वेद आहार और आयुष औषधि लाइसेंसिंग में क्या वैधानिक अंतर है?",
+    card4Title: "🌿 DMROA 1954 निषिद्ध रोग दावा परीक्षक",
+    card4Sub: "धारा 3 अनुसूची जांच: भ्रामक चिकित्सीय विज्ञापन प्रतिबंध",
+    card4Prompt: "क्या औषधि और चमत्कारिक उपचार अधिनियम 1954 के तहत गठिया या मधुमेह के लिए आयुर्वेदिक दावे विज्ञापित किए जा सकते हैं?",
+
+    // International Suggestion Cards
+    intlCard1Title: "WIPO GRATK संधि 2024 पेटेंट प्रकटीकरण",
+    intlCard1Sub: "PCT आवेदनों हेतु अनिवार्य आनुवंशिक संसाधन व TK घोषणा",
+    intlCard1Prompt: "WIPO GRATK संधि 2024 के तहत PCT पेटेंट फाइलिंग के लिए आनुवंशिक संसाधनों की अनिवार्य प्रकटीकरण आवश्यकताएं क्या हैं?",
+    intlCard2Title: "हर्बल निर्यात हेतु EU THMPD 15-वर्षीय नियम",
+    intlCard2Sub: "निर्देश 2004/24/EC: जर्मनी/फ्रांस में पारंपरिक उपयोग प्रमाण",
+    intlCard2Prompt: "EU निर्देश 2004/24/EC (THMPD) के तहत जर्मनी को अश्वगंधा अर्क निर्यात करने के लिए 15-वर्षीय यूरोपीय उपयोग कैसे सिद्ध करें?",
+    intlCard3Title: "US FDA DSHEA आहार पूरक मार्ग",
+    intlCard3Sub: "संरचना/कार्य अस्वीकरण बनाम CDER बॉटनिकल औषधि IND",
+    intlCard3Prompt: "क्या मैं CDER बॉटनिकल ड्रग IND के बिना अमेरिका में DSHEA आहार पूरक के रूप में आयुर्वेदिक फॉर्मूलेशन बेच सकता हूँ?",
+    intlCard4Title: "नागोया प्रोटोकॉल ABS क्लियरिंग-हाउस (IRCC)",
+    intlCard4Sub: "पूर्व सूचित सहमति (PIC) व पारस्परिक सहमत शर्तें (MAT)",
+    intlCard4Prompt: "सीमा पार आयुर्वेदिक अनुसंधान हेतु नागोया प्रोटोकॉल ABS क्लियरिंग-हाउस के तहत कौन से IRCC दस्तावेज़ आवश्यक हैं?",
+
     inputPlaceholder: "आयुष पेटेंट, NBA अनुमोदन, निर्माण लाइसेंसिंग या वैश्विक निर्यात के बारे में कुछ भी पूछें...",
     dockDisclaimer: "आईपी-शक्ति सहायक सभी बयानों को आधिकारिक सरकारी राजपत्रों के विरुद्ध सत्यापित करता है। विधिक फाइलिंग से पहले वैधानिक प्राधिकरणों से पुष्टि करें।",
     micBtnTitle: "बोलकर प्रश्न पूछें (माइक्रोफ़ोन आवाज़ पहचान)",
@@ -4247,7 +4272,8 @@ const I18N = {
     headerArch: "⚡ आर्किटेक्चर",
     headerSettings: "⚙️ सेटिंग्स",
     headerPaid: "असिस्ट प्लस",
-    headerLang: "🌐 हिंदी",
+    headerChatbot: "चैटबॉट",
+    headerLang: "हिन्दी ▾",
     paidHeroTitle: "नियामक बुद्धिमत्ता एवं माइलस्टोन सूट",
     paidHeroSub: "संवादात्मक एआई परामर्श, बहु-चरणीय अनुपालन निष्पादन या वैधानिक सलाह के लिए अधिकृत मॉड्यूल चुनें।",
     paidCardChatTitle: "सामान्य चैटबॉट",
@@ -4262,6 +4288,95 @@ const I18N = {
   }
 };
 
+function updateSuggestionCards() {
+  const isIntl = (typeof currentJurisdiction !== "undefined" && currentJurisdiction === "international");
+  const dict = (typeof I18N !== "undefined" && I18N[currentAyushLanguage]) ? I18N[currentAyushLanguage] : I18N.en;
+
+  const heroSubHeading = document.getElementById("heroSubHeading");
+  if (heroSubHeading) {
+    heroSubHeading.textContent = isIntl ? (dict.intlHeroSub || dict.heroSub) : (dict.indiaHeroSub || dict.heroSub);
+  }
+
+  const suggCard1Title = document.getElementById("suggCard1Title");
+  if (suggCard1Title) suggCard1Title.textContent = isIntl ? dict.intlCard1Title : dict.card1Title;
+  const suggCard1Sub = document.getElementById("suggCard1Sub");
+  if (suggCard1Sub) suggCard1Sub.textContent = isIntl ? dict.intlCard1Sub : dict.card1Sub;
+
+  const suggCard2Title = document.getElementById("suggCard2Title");
+  if (suggCard2Title) suggCard2Title.textContent = isIntl ? dict.intlCard2Title : dict.card2Title;
+  const suggCard2Sub = document.getElementById("suggCard2Sub");
+  if (suggCard2Sub) suggCard2Sub.textContent = isIntl ? dict.intlCard2Sub : dict.card2Sub;
+
+  const suggCard3Title = document.getElementById("suggCard3Title");
+  if (suggCard3Title) suggCard3Title.textContent = isIntl ? dict.intlCard3Title : dict.card3Title;
+  const suggCard3Sub = document.getElementById("suggCard3Sub");
+  if (suggCard3Sub) suggCard3Sub.textContent = isIntl ? dict.intlCard3Sub : dict.card3Sub;
+
+  const suggCard4Title = document.getElementById("suggCard4Title");
+  if (suggCard4Title) suggCard4Title.textContent = isIntl ? dict.intlCard4Title : dict.card4Title;
+  const suggCard4Sub = document.getElementById("suggCard4Sub");
+  if (suggCard4Sub) suggCard4Sub.textContent = isIntl ? dict.intlCard4Sub : dict.card4Sub;
+}
+
+function toggleLangDropdown(e) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById("langDropdownMenu");
+  if (menu) {
+    menu.classList.toggle("hidden");
+  }
+}
+
+// Global click listener to dismiss language dropdown on outside click
+document.addEventListener("click", function(event) {
+  const container = document.getElementById("langDropdownContainer");
+  const menu = document.getElementById("langDropdownMenu");
+  if (container && menu && !container.contains(event.target)) {
+    menu.classList.add("hidden");
+  }
+});
+
+function selectLanguage(langCode) {
+  const menu = document.getElementById("langDropdownMenu");
+  if (menu) menu.classList.add("hidden");
+
+  if (langCode === "en") {
+    currentAyushLanguage = "en";
+    localStorage.setItem("ayush_language", "en");
+    const label = document.getElementById("headerLangLabel");
+    if (label) label.textContent = "English ▾";
+    const optEn = document.getElementById("langOpt_en");
+    const optHi = document.getElementById("langOpt_hi");
+    if (optEn) optEn.classList.add("active");
+    if (optHi) optHi.classList.remove("active");
+    updateLanguageUI();
+    return;
+  }
+
+  if (langCode === "hi") {
+    currentAyushLanguage = "hi";
+    localStorage.setItem("ayush_language", "hi");
+    const label = document.getElementById("headerLangLabel");
+    if (label) label.textContent = "हिन्दी ▾";
+    const optEn = document.getElementById("langOpt_en");
+    const optHi = document.getElementById("langOpt_hi");
+    if (optHi) optHi.classList.add("active");
+    if (optEn) optEn.classList.remove("active");
+    updateLanguageUI();
+    return;
+  }
+
+  // Preview regional languages
+  const langNames = {
+    mr: "मराठी (Marathi)",
+    ta: "தமிழ் (Tamil)",
+    te: "తెలుగు (Telugu)",
+    bn: "বাংলা (Bengali)",
+    gu: "ગુજરાતી (Gujarati)"
+  };
+  const name = langNames[langCode] || langCode;
+  showNotificationToast(`ℹ️ ${name} support is planned for production. Prototype currently live for English and हिन्दी.`);
+}
+
 function toggleLanguage() {
   currentAyushLanguage = (currentAyushLanguage === "en") ? "hi" : "en";
   localStorage.setItem("ayush_language", currentAyushLanguage);
@@ -4275,7 +4390,7 @@ function updateLanguageUI() {
   // 1. Language Button in Header
   const langBtn = document.getElementById("headerLangBtn");
   const langLabel = document.getElementById("headerLangLabel");
-  if (langLabel) langLabel.textContent = dict.headerLang;
+  if (langLabel) langLabel.textContent = isHi ? "हिन्दी ▾" : "English ▾";
   if (langBtn) {
     if (isHi) {
       langBtn.classList.add("hindi-active");
@@ -4313,41 +4428,9 @@ function updateLanguageUI() {
   if (heroMainHeading) {
     heroMainHeading.textContent = dict.heroTitle;
   }
-  const heroSubHeading = document.getElementById("heroSubHeading");
-  if (heroSubHeading) {
-    heroSubHeading.textContent = dict.heroSub;
-  }
 
-  // Quick Chips
-  const chipMcpText = document.getElementById("heroChipMcpText");
-  if (chipMcpText) chipMcpText.textContent = dict.chipMcp;
-  const chipMcpBadge = document.getElementById("heroChipMcpBadge");
-  if (chipMcpBadge) chipMcpBadge.textContent = dict.chipMcpBadge;
-  const chipArchText = document.getElementById("heroChipArchText");
-  if (chipArchText) chipArchText.textContent = dict.chipArch;
-  const chipScannerText = document.getElementById("heroChipScannerText");
-  if (chipScannerText) chipScannerText.textContent = dict.chipScanner;
-
-  // 4 Suggestions Cards
-  const suggCard1Title = document.getElementById("suggCard1Title");
-  if (suggCard1Title) suggCard1Title.textContent = dict.card1Title;
-  const suggCard1Sub = document.getElementById("suggCard1Sub");
-  if (suggCard1Sub) suggCard1Sub.textContent = dict.card1Sub;
-
-  const suggCard2Title = document.getElementById("suggCard2Title");
-  if (suggCard2Title) suggCard2Title.textContent = dict.card2Title;
-  const suggCard2Sub = document.getElementById("suggCard2Sub");
-  if (suggCard2Sub) suggCard2Sub.textContent = dict.card2Sub;
-
-  const suggCard3Title = document.getElementById("suggCard3Title");
-  if (suggCard3Title) suggCard3Title.textContent = dict.card3Title;
-  const suggCard3Sub = document.getElementById("suggCard3Sub");
-  if (suggCard3Sub) suggCard3Sub.textContent = dict.card3Sub;
-
-  const suggCard4Title = document.getElementById("suggCard4Title");
-  if (suggCard4Title) suggCard4Title.textContent = dict.card4Title;
-  const suggCard4Sub = document.getElementById("suggCard4Sub");
-  if (suggCard4Sub) suggCard4Sub.textContent = dict.card4Sub;
+  // Sync suggestion cards & subtitle according to language and jurisdiction
+  updateSuggestionCards();
 
   // 4. Sidebar Elements
   const sidebarNewChatText = document.getElementById("sidebarNewChatText");
@@ -4386,12 +4469,8 @@ function updateLanguageUI() {
   const brandSub = document.getElementById("brandSub");
   if (brandSub) brandSub.textContent = dict.brandMinistry;
 
-  // 5. Header Buttons
-  const headerProBtnLabel = document.getElementById("headerProBtnLabel");
-  if (headerProBtnLabel) headerProBtnLabel.textContent = dict.headerPaid;
-
-  const headerMcpBtnSpan = document.getElementById("headerMcpBtnSpan");
-  if (headerMcpBtnSpan) headerMcpBtnSpan.textContent = dict.chipMcp.replace(" Protocol", "");
+  // 5. Header Buttons & Mode Sync
+  updateTierModeButton();
 
   const headerSourcesBtnSpan = document.getElementById("headerSourcesBtnSpan");
   if (headerSourcesBtnSpan) headerSourcesBtnSpan.textContent = dict.headerSources;
@@ -4443,6 +4522,21 @@ function initLanguage() {
   if (saved) {
     currentAyushLanguage = saved;
   }
+  const label = document.getElementById("headerLangLabel");
+  if (label) {
+    label.textContent = currentAyushLanguage === "hi" ? "हिन्दी ▾" : "English ▾";
+  }
+  const optEn = document.getElementById("langOpt_en");
+  const optHi = document.getElementById("langOpt_hi");
+  if (optEn && optHi) {
+    if (currentAyushLanguage === "hi") {
+      optHi.classList.add("active");
+      optEn.classList.remove("active");
+    } else {
+      optEn.classList.add("active");
+      optHi.classList.remove("active");
+    }
+  }
   updateLanguageUI();
 }
 
@@ -4470,7 +4564,7 @@ function toggleJurisdiction(forcedValue) {
 function updateJurisdictionUI(showToast = false) {
   const isIntl = currentJurisdiction === "international";
 
-  // 1. Header Jurisdiction Button
+  // 1. Header Jurisdiction Button (if present)
   const headerBtn = document.getElementById("headerJurisdictionBtn");
   const flagEl = document.getElementById("headerJurisdictionFlag");
   const labelEl = document.getElementById("headerJurisdictionLabel");
@@ -4499,7 +4593,10 @@ function updateJurisdictionUI(showToast = false) {
     sidebarBadge.style.background = isIntl ? "#2563EB" : "#059669";
   }
 
-  // 3. Update Sources Modal if open
+  // 3. Update Suggestion Cards dynamically based on Jurisdiction
+  updateSuggestionCards();
+
+  // 4. Update Sources Modal if open
   const sourcesModal = document.getElementById("sourcesModal");
   if (sourcesModal && !sourcesModal.classList.contains("hidden")) {
     activeSourceCategory = "all";
@@ -4507,7 +4604,7 @@ function updateJurisdictionUI(showToast = false) {
     renderSources();
   }
 
-  // 4. Toast notification
+  // 5. Toast notification
   if (showToast) {
     if (isIntl) {
       showNotificationToast("🌐 Switched to International Regime (WIPO GRATK Treaty 2024, CBD Nagoya ABS, EU THMPD & US FDA)");

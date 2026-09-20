@@ -42,11 +42,6 @@
           <div class="thread-text" id="sidebarJurisdictionText" style="font-weight: 600; color: #047857;">Regime: India</div>
           <span class="sidebar-pro-pill" id="sidebarJurisdictionBadge" style="font-size: 10px; font-weight: 700; background: #059669; color: #FFF; padding: 1px 6px; border-radius: 4px; margin-left: auto;">NATIONAL</span>
         </div>
-        <div class="thread-item pro-sidebar-item" onclick="toggleTierMode()" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25);">
-          <span class="thread-icon" style="color: #D97706;">★</span>
-          <div class="thread-text" id="sidebarItemPaidText" style="font-weight: 600; color: #92400E;">Assist Plus</div>
-          <span class="sidebar-pro-pill" style="font-size: 10px; font-weight: 700; background: #D97706; color: #FFF; padding: 1px 6px; border-radius: 4px; margin-left: auto;">PLUS</span>
-        </div>
 
         <div class="thread-item" onclick="openScannerModal()">
           <span class="thread-icon">🔬</span>
@@ -121,44 +116,78 @@
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="model-text" style="font-weight: 700; color: #0F172A; font-size: 14px;">IP-SAKTI Sahayak</span>
             <select id="headerModelSelect" class="header-model-dropdown" onchange="handleHeaderModelChange(this.value)">
-              <optgroup label="⚡ NVIDIA NIM (Cloud)">
-                <option value="nvidia/nemotron-3-ultra-550b-a55b" selected>⚡ Nemotron-3 Ultra (Accuracy: 98.2%)</option>
-                <option value="nvidia/nemotron-3.5-lightning-30b-a3b">⚡ Nemotron-3.5 Lightning (Speed: 18ms)</option>
-                <option value="meta/llama-3.3-70b-instruct">🦙 Llama-3.3 70B (Accuracy: 95.8%)</option>
-                <option value="deepseek-ai/deepseek-r1">🧠 DeepSeek-R1 (Reasoning: 97.1%)</option>
+              <optgroup label="⚡ NVIDIA NIM">
+                <option value="nvidia/nemotron-3-ultra-550b-a55b" selected>⚡ Nemotron-3 Ultra</option>
+                <option value="nvidia/nemotron-3.5-lightning-30b-a3b">⚡ Nemotron-3.5 Lite</option>
+                <option value="meta/llama-3.3-70b-instruct">🦙 Llama-3.3 70B</option>
+                <option value="deepseek-ai/deepseek-r1">🧠 DeepSeek-R1</option>
               </optgroup>
-              <optgroup label="🤖 OpenAI (Cloud)">
-                <option value="gpt-4o">🤖 OpenAI GPT-4o (Accuracy: 98.9%)</option>
-                <option value="gpt-4o-mini">🤖 OpenAI GPT-4o-Mini (Speed: 22ms)</option>
-                <option value="o3-mini">🧠 OpenAI o3-Mini (Reasoning: 98.5%)</option>
-                <option value="o1">🧠 OpenAI o1 (Deep Reasoning: 99.1%)</option>
+              <optgroup label="🤖 OpenAI">
+                <option value="gpt-4o">🤖 GPT-4o</option>
+                <option value="gpt-4o-mini">🤖 GPT-4o Mini</option>
+                <option value="o3-mini">🧠 o3-Mini</option>
+                <option value="o1">🧠 o1</option>
               </optgroup>
-              <optgroup label="💻 Ollama (Local & Offline - No Key)">
-                <option value="llama3.2">💻 Ollama Llama-3.2 (Local 100%)</option>
-                <option value="llama3:8b">💻 Ollama Llama-3 8B (Local 100%)</option>
-                <option value="qwen2.5:7b">💻 Ollama Qwen-2.5 (Local 100%)</option>
+              <optgroup label="💻 Ollama">
+                <option value="llama3.2">💻 Llama-3.2 (Local)</option>
+                <option value="llama3:8b">💻 Llama-3 8B (Local)</option>
+                <option value="qwen2.5:7b">💻 Qwen-2.5 (Local)</option>
               </optgroup>
             </select>
           </div>
         </div>
 
         <div class="header-right-group">
-          <button class="header-icon-btn jurisdiction-toggle-btn" id="headerJurisdictionBtn" onclick="toggleJurisdiction()" title="Switch Regulatory Regime: India (National) vs International (Global Treaties)">
-            <span class="jurisdiction-flag" id="headerJurisdictionFlag">🇮🇳</span>
-            <span class="jurisdiction-label" id="headerJurisdictionLabel">India</span>
-          </button>
-          <button class="header-pro-btn" id="headerProBtn" onclick="toggleTierMode()" title="Switch between Free and Assist Plus">
+          <button class="header-pro-btn" id="headerProBtn" onclick="toggleTierMode()" title="Switch between Chatbot and Assist Plus">
             <span class="pro-sparkle">★</span>
             <span class="pro-label" id="headerProBtnLabel">Assist Plus</span>
-            <span class="pro-badge">PLUS</span>
           </button>
-          <button class="header-icon-btn lang-toggle-btn" id="headerLangBtn" onclick="toggleLanguage()" title="Switch Language (English / हिंदी)">
-            <span class="lang-icon">🌐</span>
-            <span class="lang-label" id="headerLangLabel">EN / हिंदी</span>
-          </button>
-          <button class="header-icon-btn mcp-highlight-btn" id="headerMcpBtn" onclick="openMcpModal()" title="Model Context Protocol (MCP) Server & Tools">
-            <span id="headerMcpBtnSpan">🔌 MCP Tools</span>
-          </button>
+
+          <div class="lang-dropdown-container" id="langDropdownContainer">
+            <button class="header-icon-btn lang-toggle-btn" id="headerLangBtn" onclick="toggleLangDropdown(event)" title="Select Language">
+              <span class="lang-icon">🌐</span>
+              <span class="lang-label" id="headerLangLabel">English ▾</span>
+            </button>
+            <div class="lang-dropdown-menu hidden" id="langDropdownMenu">
+              <div class="lang-dropdown-header">Select Language / भाषा चुनें</div>
+              <button class="lang-dropdown-item active" id="langOpt_en" onclick="selectLanguage('en')">
+                <span class="lang-code">EN</span>
+                <span class="lang-title">English</span>
+                <span class="lang-status active-badge">Active</span>
+              </button>
+              <button class="lang-dropdown-item" id="langOpt_hi" onclick="selectLanguage('hi')">
+                <span class="lang-code">HI</span>
+                <span class="lang-title">हिन्दी (Hindi)</span>
+                <span class="lang-status live-badge">Live</span>
+              </button>
+              <button class="lang-dropdown-item preview-item" onclick="selectLanguage('mr')">
+                <span class="lang-code">MR</span>
+                <span class="lang-title">मराठी (Marathi)</span>
+                <span class="lang-status preview-badge">Soon</span>
+              </button>
+              <button class="lang-dropdown-item preview-item" onclick="selectLanguage('ta')">
+                <span class="lang-code">TA</span>
+                <span class="lang-title">தமிழ் (Tamil)</span>
+                <span class="lang-status preview-badge">Soon</span>
+              </button>
+              <button class="lang-dropdown-item preview-item" onclick="selectLanguage('te')">
+                <span class="lang-code">TE</span>
+                <span class="lang-title">తెలుగు (Telugu)</span>
+                <span class="lang-status preview-badge">Soon</span>
+              </button>
+              <button class="lang-dropdown-item preview-item" onclick="selectLanguage('bn')">
+                <span class="lang-code">BN</span>
+                <span class="lang-title">বাংলা (Bengali)</span>
+                <span class="lang-status preview-badge">Soon</span>
+              </button>
+              <button class="lang-dropdown-item preview-item" onclick="selectLanguage('gu')">
+                <span class="lang-code">GU</span>
+                <span class="lang-title">ગુજરાતી (Gujarati)</span>
+                <span class="lang-status preview-badge">Soon</span>
+              </button>
+            </div>
+          </div>
+
           <button class="header-icon-btn sources-toggle-btn" id="headerSourcesBtn" onclick="openSourcesModal()" title="Verified Statutory & Regulatory Sources Directory">
             <span id="headerSourcesBtnSpan">📚 Sources</span>
           </button>
@@ -264,19 +293,6 @@
           <h1 class="empty-heading" id="heroMainHeading">What Ayush regulation, patent, or compliance can I assist with today?</h1>
           <p class="empty-sub" id="heroSubHeading">Evidence-first regulatory intelligence grounded across Indian (IPO, NBA, Ayush) and Global (WIPO, USPTO, EMA, FDA) regimes.</p>
 
-          <!-- Interactive Feature Quick Chips -->
-          <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 22px; flex-wrap: wrap;">
-            <button class="mcp-highlight-btn" id="heroChipMcp" onclick="openMcpModal()" style="padding: 7px 16px; border-radius: 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
-              <span id="heroChipMcpText">🔌 Model Context Protocol (MCP) Tools</span>
-              <span id="heroChipMcpBadge" style="background: rgba(255,255,255,0.25); color: #FFF; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700;">6 LIVE TOOLS</span>
-            </button>
-            <button class="header-icon-btn" id="heroChipArch" onclick="openArchitectureModal()" style="padding: 7px 16px; border-radius: 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; background: #FFFFFF; border: 1px solid #CBD5E1;">
-              <span id="heroChipArchText">⚡ StateGraph 8-Node Architecture</span>
-            </button>
-            <button class="header-icon-btn" id="heroChipScanner" onclick="openScannerModal()" style="padding: 7px 16px; border-radius: 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; background: #FFFFFF; border: 1px solid #CBD5E1;">
-              <span id="heroChipScannerText">🔬 TKDL Formulation Screener</span>
-            </button>
-          </div>
 
           <div class="prompt-suggestions-grid">
             <button class="suggestion-card" id="suggCard1" onclick="handleSuggestionClick(1)">
@@ -311,9 +327,6 @@
         <div class="attached-docs-tray hidden" id="attachedDocsTray"></div>
 
         <div class="input-pill-wrapper">
-          <button class="input-action-btn" onclick="openMcpModal()" title="Open Model Context Protocol (MCP) Tools" style="margin-right: 4px; font-size: 15px;">
-            🔌
-          </button>
 
           <button class="input-action-btn mic-btn" id="voiceMicBtn" title="Speak via Web Speech Recognition (Voice Query)">
             🎙️
