@@ -7363,5 +7363,133 @@ body.dark-mode .source-visit-btn {
   color: #FFFFFF;
 }
 
+/* ===================================================
+   DUAL JURISDICTION TOGGLE & AGENT STYLES
+   =================================================== */
+.jurisdiction-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #047857;
+  cursor: pointer;
+}
+
+.jurisdiction-toggle-btn:hover {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: #10B981;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+.jurisdiction-toggle-btn.intl-active {
+  background: rgba(37, 99, 235, 0.09);
+  border-color: rgba(37, 99, 235, 0.35);
+  color: #1D4ED8;
+}
+
+.jurisdiction-toggle-btn.intl-active:hover {
+  background: rgba(37, 99, 235, 0.18);
+  border-color: #3B82F6;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18);
+}
+
+.jurisdiction-flag {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.jurisdiction-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+body.dark-mode .jurisdiction-toggle-btn {
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #34D399;
+}
+
+body.dark-mode .jurisdiction-toggle-btn.intl-active {
+  background: rgba(37, 99, 235, 0.16);
+  border-color: rgba(37, 99, 235, 0.45);
+  color: #60A5FA;
+}
+
+/* Agent Pill Variations */
+.agent-mini-pill.blue {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+}
+.agent-mini-pill.blue .pill-status {
+  color: #1D4ED8;
+}
+
+.agent-mini-pill.purple {
+  background: #FAF5FF;
+  border: 1px solid #E9D5FF;
+}
+.agent-mini-pill.purple .pill-status {
+  color: #7E22CE;
+}
+
+body.dark-mode .agent-mini-pill.blue {
+  background: rgba(37, 99, 235, 0.15);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+body.dark-mode .agent-mini-pill.blue .pill-status {
+  color: #93C5FD;
+}
+
+body.dark-mode .agent-mini-pill.purple {
+  background: rgba(147, 51, 234, 0.15);
+  border-color: rgba(168, 85, 247, 0.35);
+}
+body.dark-mode .agent-mini-pill.purple .pill-status {
+  color: #D8B4FE;
+}
+
+/* Jurisdiction Toast */
+.jurisdiction-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: #0F172A;
+  color: #FFFFFF;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  animation: slideToastUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.jurisdiction-toast.fade-out {
+  animation: slideToastDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideToastUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideToastDown {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(16px); }
+}
+
 
 

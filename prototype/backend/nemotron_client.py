@@ -148,14 +148,12 @@ class NemotronClient:
     def _build_grounding_context(self, state_context: dict = None) -> str:
         if not state_context:
             return ""
+        jurisdiction = state_context.get("jurisdiction", "india").lower()
         herbs = [b.get("common_name", "") for b in state_context.get("detected_botanicals", [])]
         herbs_str = ", ".join(herbs) if herbs else "General herbal ingredients"
         dosage = state_context.get("dosage_form", "Standard formulation")
         workaround = state_context.get("strategic_workaround", "")
         collisions = state_context.get("detected_collisions", [])
-        ipo_stat = state_context.get("ipo_evaluation", {}).get("status", "")
-        nba_stat = state_context.get("nba_evaluation", {}).get("status", "")
-        ayush_stat = state_context.get("ayush_evaluation", {}).get("status", "")
 
         vern_list = state_context.get("vernacular_mappings", {}).get("recognized_vernaculars", [])
         vern_str = ""
@@ -169,13 +167,39 @@ class NemotronClient:
                 )
             vern_str = "\n- Traditional Dialect & Pharmacopoeial Mapping:\n  * " + "\n  * ".join(v_lines)
 
+        if jurisdiction == "international":
+            wipo_stat = state_context.get("wipo_evaluation", {}).get("status", "Mandatory Disclosure Active")
+            cbd_stat = state_context.get("cbd_evaluation", {}).get("status", "PIC & Benefit Sharing")
+            eu_stat = state_context.get("eu_evaluation", {}).get("status", "THMPD Registration")
+            us_stat = state_context.get("us_evaluation", {}).get("status", "DSHEA / Botanical Guidance")
+
+            return f"""
+MULTI-AGENT STATUTORY STATE-GRAPH CONTEXT (INTERNATIONAL JURISDICTION):
+- Active Jurisdiction: International (Global Treaties & Regional Authorities)
+- Detected Botanicals: {herbs_str}
+- Dosage Form: {dosage}{vern_str}
+- WIPO GRATK Treaty (2024) Mandatory Disclosure: {wipo_stat}
+- CBD Nagoya Protocol ABS & Budapest Treaty: {cbd_stat}
+- EU EMA & THMPD Directive 2004/24/EC: {eu_stat}
+- US FDA Botanical Guidance & DSHEA: {us_stat}
+- Cross-Border Collisions Detected: {'; '.join(collisions) if collisions else 'No direct fatal collision'}
+- Recommended Strategic Workaround: {workaround}
+"""
+
+        ipo_stat = state_context.get("ipo_evaluation", {}).get("status", "")
+        nba_stat = state_context.get("nba_evaluation", {}).get("status", "")
+        ayush_stat = state_context.get("ayush_evaluation", {}).get("status", "")
+        allied_stat = state_context.get("allied_evaluation", {}).get("status", "FSSAI/DMROA Compliant")
+
         return f"""
-MULTI-AGENT STATUTORY STATE-GRAPH CONTEXT:
+MULTI-AGENT STATUTORY STATE-GRAPH CONTEXT (INDIA JURISDICTION):
+- Active Jurisdiction: National (India)
 - Detected Botanicals: {herbs_str}
 - Dosage Form: {dosage}{vern_str}
 - Patent Office (Section 3p/3e) Evaluation: {ipo_stat}
 - Biodiversity Board (Section 6) Evaluation: {nba_stat}
 - Ayush Licensing (Rule 158-B) Evaluation: {ayush_stat}
+- Allied Regimes (FSSAI Ayurveda-Aahar & DMROA 1954): {allied_stat}
 - Cross-Regulatory Collisions Detected: {'; '.join(collisions) if collisions else 'No direct fatal collision'}
 - Recommended Strategic Workaround: {workaround}
 """
@@ -189,9 +213,41 @@ MULTI-AGENT STATUTORY STATE-GRAPH CONTEXT:
         4. Structured Multi-Agent StateGraph Legal Synthesis
         """
         grounding_context = self._build_grounding_context(state_context)
+        jurisdiction = (state_context.get("jurisdiction", "india") if state_context else "india").lower()
 
-        if language == "hi":
-            prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
+        if jurisdiction == "international":
+            if language == "hi":
+                prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
+Evaluate global patent treaties and cross-border regulatory compliance in fluent, authoritative Hindi:
+- User Inquiry: {user_query}
+{grounding_context}
+
+CRITICAL RULES:
+- Structure with:
+  ### 1. WIPO एवं GRATK संधि 2024 (अनिवार्य पूर्वज प्रकटीकरण)
+  ### 2. CBD, नगोया प्रोटोकॉल ABS एवं बुडापेस्ट संधि
+  ### 3. यूरोपीय संघ EMA एवं THMPD (निर्देश 2004/24/EC)
+  ### 4. यूएस एफडीए एवं वैश्विक विनियामक (DSHEA / वानस्पतिक औषधियां)
+  ### 5. वैश्विक पेटेंट संरक्षण एवं निर्यात अनुपालन रणनीति
+- Output ONLY the final report in fluent Hindi. Start immediately with '###'. Under 350 words."""
+            else:
+                prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
+Evaluate global patent treaties and international market compliance:
+- User Inquiry: {user_query}
+{grounding_context}
+
+CRITICAL RULES:
+- Respond ONLY in professional English using clean markdown.
+- Structure with:
+  ### 1. WIPO & Diplomatic Conference GRATK Treaty (2024)
+  ### 2. CBD, Nagoya Protocol ABS & Budapest Treaty
+  ### 3. European Union Herbal Medicine Regime (EMA / Directive 2004/24/EC THMPD)
+  ### 4. US FDA & FTC Regime (Botanical Drug Guidance / DSHEA)
+  ### 5. Actionable Strategy & International Filing Roadmap
+- Output ONLY the final report in fluent English. Start immediately with '###'. Under 350 words."""
+        else:
+            if language == "hi":
+                prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
 Evaluate patentability and regulatory compliance under Indian Law in fluent, authoritative Hindi (हिंदी भाषा में संपूर्ण उत्तर दें):
 - User Inquiry: {user_query}
 {grounding_context}
@@ -202,11 +258,11 @@ CRITICAL RULES:
   ### 1. भारतीय पेटेंट कार्यालय (IPO) निष्कर्ष एवं धारा 3(p)/3(e) विश्लेषण
   ### 2. राष्ट्रीय जैव विविधता प्राधिकरण (NBA) प्रपत्र 3 पूर्व अनुमोदन (धारा 6)
   ### 3. राज्य आयुष लाइसेंसिंग प्राधिकरण (नियम 158-B शास्त्रीय बनाम प्रोप्राइटरी ASU)
-  ### 4. वैश्विक निर्यात सामंजस्य (US FDA DSHEA / EU THMPD)
+  ### 4. संबद्ध विनियामक प्रणालियाँ (FSSAI आयुर्वेद-आहार, DMROA 1954 एवं प्रसाधन)
   ### 5. पेटेंट योग्य व्यावहारिक रणनीति एवं सहक्रियात्मक फॉर्मूलेशन रोडमैप
 - Output ONLY the final report in fluent Hindi. Start immediately with '###'. Under 350 words."""
-        else:
-            prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
+            else:
+                prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
 Evaluate patentability and regulatory compliance under Indian Law:
 - User Inquiry: {user_query}
 {grounding_context}
@@ -217,7 +273,7 @@ CRITICAL RULES:
   ### 1. Indian Patent Office (IPO) Verdict & Section 3(p)/3(e) Analysis
   ### 2. National Biodiversity Authority (NBA) Mandate & Form 3 Prior Approval (Section 6)
   ### 3. State Ayush Licensing Authority (Rule 158-B Classical vs Proprietary ASU)
-  ### 4. Global Export Harmonization (US FDA DSHEA / EU THMPD)
+  ### 4. Allied Regimes (FSSAI Ayurveda-Aahar, DMROA 1954 & Cosmetics)
   ### 5. Actionable Patent Workaround & Synergistic Formulation Roadmap
 - Output ONLY the final report in fluent English. Start immediately with '###'. Under 350 words."""
 
@@ -331,9 +387,41 @@ CRITICAL RULES:
         Yields dict: {"token": str, "source": str, "model": str}
         """
         grounding_context = self._build_grounding_context(state_context)
+        jurisdiction = (state_context.get("jurisdiction", "india") if state_context else "india").lower()
 
-        if language == "hi":
-            prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
+        if jurisdiction == "international":
+            if language == "hi":
+                prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
+Evaluate global patent treaties and cross-border regulatory compliance in fluent, authoritative Hindi:
+- User Inquiry: {user_query}
+{grounding_context}
+
+CRITICAL RULES:
+- Structure with:
+  ### 1. WIPO एवं GRATK संधि 2024 (अनिवार्य पूर्वज प्रकटीकरण)
+  ### 2. CBD, नगोया प्रोटोकॉल ABS एवं बुडापेस्ट संधि
+  ### 3. यूरोपीय संघ EMA एवं THMPD (निर्देश 2004/24/EC)
+  ### 4. यूएस एफडीए एवं वैश्विक विनियामक (DSHEA / वानस्पतिक औषधियां)
+  ### 5. वैश्विक पेटेंट संरक्षण एवं निर्यात अनुपालन रणनीति
+- Output ONLY the final report in fluent Hindi. Start immediately with '###'. Under 350 words."""
+            else:
+                prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
+Evaluate global patent treaties and international market compliance:
+- User Inquiry: {user_query}
+{grounding_context}
+
+CRITICAL RULES:
+- Respond ONLY in professional English using clean markdown.
+- Structure with:
+  ### 1. WIPO & Diplomatic Conference GRATK Treaty (2024)
+  ### 2. CBD, Nagoya Protocol ABS & Budapest Treaty
+  ### 3. European Union Herbal Medicine Regime (EMA / Directive 2004/24/EC THMPD)
+  ### 4. US FDA & FTC Regime (Botanical Drug Guidance / DSHEA)
+  ### 5. Actionable Strategy & International Filing Roadmap
+- Output ONLY the final report. Start immediately with '###'. Under 350 words."""
+        else:
+            if language == "hi":
+                prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
 Evaluate patentability and regulatory compliance under Indian Law in fluent, authoritative Hindi (हिंदी भाषा में संपूर्ण उत्तर दें):
 - User Inquiry: {user_query}
 {grounding_context}
@@ -344,11 +432,11 @@ CRITICAL RULES:
   ### 1. भारतीय पेटेंट कार्यालय (IPO) निष्कर्ष एवं धारा 3(p)/3(e) विश्लेषण
   ### 2. राष्ट्रीय जैव विविधता प्राधिकरण (NBA) प्रपत्र 3 पूर्व अनुमोदन (धारा 6)
   ### 3. राज्य आयुष लाइसेंसिंग प्राधिकरण (नियम 158-B शास्त्रीय बनाम प्रोप्राइटरी ASU)
-  ### 4. वैश्विक निर्यात सामंजस्य (US FDA DSHEA / EU THMPD)
+  ### 4. संबद्ध विनियामक प्रणालियाँ (FSSAI आयुर्वेद-आहार, DMROA 1954 एवं प्रसाधन)
   ### 5. पेटेंट योग्य व्यावहारिक रणनीति एवं सहक्रियात्मक फॉर्मूलेशन रोडमैप
 - Output ONLY the final report in fluent Hindi. Start immediately with '###'. Under 350 words."""
-        else:
-            prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
+            else:
+                prompt_content = f"""You are IP-SAKTI Sahayak, regulatory AI for Ministry of Ayush, Government of India.
 Evaluate patentability and regulatory compliance under Indian Law:
 - User Inquiry: {user_query}
 {grounding_context}
@@ -359,7 +447,7 @@ CRITICAL RULES:
   ### 1. Indian Patent Office (IPO) Verdict & Section 3(p)/3(e) Analysis
   ### 2. National Biodiversity Authority (NBA) Mandate & Form 3 Prior Approval (Section 6)
   ### 3. State Ayush Licensing Authority (Rule 158-B Classical vs Proprietary ASU)
-  ### 4. Global Export Harmonization (US FDA DSHEA / EU THMPD)
+  ### 4. Allied Regimes (FSSAI Ayurveda-Aahar, DMROA 1954 & Cosmetics)
   ### 5. Actionable Patent Workaround & Synergistic Formulation Roadmap
 - Output ONLY the final report. Start immediately with '###'. Under 350 words."""
 

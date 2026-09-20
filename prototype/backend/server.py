@@ -39,6 +39,7 @@ class QueryRequest(BaseModel):
     query: str
     domain: Optional[str] = "Ayurveda"
     language: Optional[str] = "en"
+    jurisdiction: Optional[str] = "india"
     scenario_id: Optional[str] = None
     documents: Optional[List[Dict[str, Any]]] = None
 
@@ -205,9 +206,9 @@ def update_config(req: ConfigRequest):
 from pipeline import regulatory_graph
 
 @app.get("/api/topology")
-def get_graph_topology():
+def get_graph_topology(jurisdiction: Optional[str] = "india"):
     """Returns nodes and edges of the Multi-Agent StateGraph for frontend visualization."""
-    return regulatory_graph.get_topology()
+    return regulatory_graph.get_topology(jurisdiction=jurisdiction or "india")
 
 @app.post("/api/documents/parse")
 async def parse_document(file: UploadFile = File(...)):
@@ -285,6 +286,7 @@ async def parse_document(file: UploadFile = File(...)):
 def process_query(req: QueryRequest):
     domain = req.domain or "Ayurveda"
     lang = req.language or "en"
+    jurisdiction = (req.jurisdiction or "india").lower()
     
     # Enrich query with attached documents if present
     effective_query = req.query
@@ -297,8 +299,8 @@ def process_query(req: QueryRequest):
             doc_snippets.append(f"--- [ATTACHED REGULATORY DOCUMENT: {fname}] ---\n(Detected Botanicals: {d_bots or 'None'})\n{d_text}")
         effective_query = f"{req.query}\n\n[CONTEXT FROM ATTACHED DOCUMENTS]:\n" + "\n\n".join(doc_snippets)
 
-    # 1. Execute Multi-Agent StateGraph across all 8 nodes
-    state = regulatory_graph.invoke(effective_query, domain=domain, language=lang)
+    # 1. Execute Multi-Agent StateGraph across all 8 nodes based on jurisdiction
+    state = regulatory_graph.invoke(effective_query, domain=domain, language=lang, jurisdiction=jurisdiction)
     
     # 2. Query Nemotron NIM / Ollama with grounded StateGraph context
     llm_live = False
@@ -321,25 +323,41 @@ def process_query(req: QueryRequest):
     except Exception as e:
         print(f"[LLM Query Exception]: {e}")
 
-    ipo_eval = state.get("ipo_evaluation", {})
-    nba_eval = state.get("nba_evaluation", {})
-    ayush_eval = state.get("ayush_evaluation", {})
-    glo_eval = state.get("global_evaluation", {})
+    if jurisdiction == "international":
+        wipo_eval = state.get("wipo_evaluation", {})
+        cbd_eval = state.get("cbd_evaluation", {})
+        eu_eval = state.get("eu_evaluation", {})
+        us_eval = state.get("us_evaluation", {})
+
+        clause_tree = [
+            {"level": "Treaty", "title": "WIPO GRATK Treaty, 2024", "ref": wipo_eval.get("status", "Mandatory Origin Disclosure"), "latency_ms": 19},
+            {"level": "Treaty", "title": "CBD & Nagoya Protocol ABS", "ref": cbd_eval.get("status", "PIC & Benefit Sharing"), "latency_ms": 23},
+            {"level": "Directive", "title": "EU THMPD (2004/24/EC)", "ref": eu_eval.get("status", "Traditional Herbal Registration"), "latency_ms": 18},
+            {"level": "Guidance", "title": "US FDA Botanical Guidance & DSHEA", "ref": us_eval.get("status", "Dietary Supplement / NDI"), "latency_ms": 16}
+        ]
+    else:
+        ipo_eval = state.get("ipo_evaluation", {})
+        nba_eval = state.get("nba_evaluation", {})
+        ayush_eval = state.get("ayush_evaluation", {})
+        allied_eval = state.get("allied_evaluation", {})
+
+        clause_tree = [
+            {"level": "Act", "title": "The Patents Act, 1970", "ref": ipo_eval.get("status", "Section 3(p) Screening"), "latency_ms": 18},
+            {"level": "Act", "title": "Biological Diversity Act, 2002", "ref": nba_eval.get("status", "Section 6 Approval"), "latency_ms": 22},
+            {"level": "Rule", "title": "Drugs & Cosmetics Rules, 1945", "ref": ayush_eval.get("status", "Rule 158-B Compliance"), "latency_ms": 19},
+            {"level": "Regime", "title": "Allied (FSSAI & DMROA 1954)", "ref": allied_eval.get("status", "Food-Aahar & Ad Compliance"), "latency_ms": 17}
+        ]
 
     return {
         "status": "success",
         "query": req.query,
         "domain": domain,
         "language": lang,
+        "jurisdiction": jurisdiction,
         "title": state.get("title", "Multi-Agent Regulatory Assessment"),
         "detected_botanicals": state.get("detected_botanicals", []),
         "dosage_form": state.get("dosage_form", ""),
-        "clause_tree": [
-            {"level": "Act", "title": "The Patents Act, 1970", "ref": ipo_eval.get("status", "Section 3(p) Screening"), "latency_ms": 18},
-            {"level": "Act", "title": "Biological Diversity Act, 2002", "ref": nba_eval.get("status", "Section 6 Approval"), "latency_ms": 22},
-            {"level": "Rule", "title": "Drugs & Cosmetics Rules, 1945", "ref": ayush_eval.get("status", "Rule 158-B Compliance"), "latency_ms": 19},
-            {"level": "Guidance", "title": "Global Export Compliance", "ref": glo_eval.get("status", "International Harmonization"), "latency_ms": 15}
-        ],
+        "clause_tree": clause_tree,
         "conflict_matrix": state.get("conflict_matrix", []),
         "detected_collisions": state.get("detected_collisions", []),
         "direct_short_summary": state.get("direct_short_summary", ""),
@@ -348,7 +366,7 @@ def process_query(req: QueryRequest):
         "workaround": state.get("strategic_workaround", ""),
         "filing_roadmap": state.get("filing_roadmap", []),
         "execution_trace": state.get("execution_trace", []),
-        "graph_topology": regulatory_graph.get_topology(),
+        "graph_topology": regulatory_graph.get_topology(jurisdiction=jurisdiction),
         "vernacular_data": state.get("vernacular_mappings", {}),
         "llm_live": llm_live,
         "llm_source": llm_source,
@@ -366,6 +384,7 @@ async def process_query_stream(req: QueryRequest):
     """
     domain = req.domain or "Ayurveda"
     lang = req.language or "en"
+    jurisdiction = (req.jurisdiction or "india").lower()
 
     effective_query = req.query
     if req.documents:
@@ -378,34 +397,50 @@ async def process_query_stream(req: QueryRequest):
         effective_query = f"{req.query}\n\n[CONTEXT FROM ATTACHED DOCUMENTS]:\n" + "\n\n".join(doc_snippets)
 
     # 1. StateGraph Multi-Agent Execution
-    state = regulatory_graph.invoke(effective_query, domain=domain, language=lang)
+    state = regulatory_graph.invoke(effective_query, domain=domain, language=lang, jurisdiction=jurisdiction)
 
-    ipo_eval = state.get("ipo_evaluation", {})
-    nba_eval = state.get("nba_evaluation", {})
-    ayush_eval = state.get("ayush_evaluation", {})
-    glo_eval = state.get("global_evaluation", {})
+    if jurisdiction == "international":
+        wipo_eval = state.get("wipo_evaluation", {})
+        cbd_eval = state.get("cbd_evaluation", {})
+        eu_eval = state.get("eu_evaluation", {})
+        us_eval = state.get("us_evaluation", {})
+
+        clause_tree = [
+            {"level": "Treaty", "title": "WIPO GRATK Treaty, 2024", "ref": wipo_eval.get("status", "Mandatory Origin Disclosure"), "latency_ms": 19},
+            {"level": "Treaty", "title": "CBD & Nagoya Protocol ABS", "ref": cbd_eval.get("status", "PIC & Benefit Sharing"), "latency_ms": 23},
+            {"level": "Directive", "title": "EU THMPD (2004/24/EC)", "ref": eu_eval.get("status", "Traditional Herbal Registration"), "latency_ms": 18},
+            {"level": "Guidance", "title": "US FDA Botanical Guidance & DSHEA", "ref": us_eval.get("status", "Dietary Supplement / NDI"), "latency_ms": 16}
+        ]
+    else:
+        ipo_eval = state.get("ipo_evaluation", {})
+        nba_eval = state.get("nba_evaluation", {})
+        ayush_eval = state.get("ayush_evaluation", {})
+        allied_eval = state.get("allied_evaluation", {})
+
+        clause_tree = [
+            {"level": "Act", "title": "The Patents Act, 1970", "ref": ipo_eval.get("status", "Section 3(p) Screening"), "latency_ms": 18},
+            {"level": "Act", "title": "Biological Diversity Act, 2002", "ref": nba_eval.get("status", "Section 6 Approval"), "latency_ms": 22},
+            {"level": "Rule", "title": "Drugs & Cosmetics Rules, 1945", "ref": ayush_eval.get("status", "Rule 158-B Compliance"), "latency_ms": 19},
+            {"level": "Regime", "title": "Allied (FSSAI & DMROA 1954)", "ref": allied_eval.get("status", "Food-Aahar & Ad Compliance"), "latency_ms": 17}
+        ]
 
     init_payload = {
         "status": "success",
         "query": req.query,
         "domain": domain,
         "language": lang,
+        "jurisdiction": jurisdiction,
         "title": state.get("title", "Multi-Agent Regulatory Assessment"),
         "detected_botanicals": state.get("detected_botanicals", []),
         "dosage_form": state.get("dosage_form", ""),
         "vernacular_data": state.get("vernacular_mappings", {}),
-        "clause_tree": [
-            {"level": "Act", "title": "The Patents Act, 1970", "ref": ipo_eval.get("status", "Section 3(p) Screening"), "latency_ms": 18},
-            {"level": "Act", "title": "Biological Diversity Act, 2002", "ref": nba_eval.get("status", "Section 6 Approval"), "latency_ms": 22},
-            {"level": "Rule", "title": "Drugs & Cosmetics Rules, 1945", "ref": ayush_eval.get("status", "Rule 158-B Compliance"), "latency_ms": 19},
-            {"level": "Guidance", "title": "Global Export Compliance", "ref": glo_eval.get("status", "International Harmonization"), "latency_ms": 15}
-        ],
+        "clause_tree": clause_tree,
         "conflict_matrix": state.get("conflict_matrix", []),
         "citations": state.get("citations", []),
         "workaround": state.get("strategic_workaround", ""),
         "filing_roadmap": state.get("filing_roadmap", []),
         "execution_trace": state.get("execution_trace", []),
-        "graph_topology": regulatory_graph.get_topology()
+        "graph_topology": regulatory_graph.get_topology(jurisdiction=jurisdiction)
     }
 
     async def event_generator():

@@ -10,6 +10,7 @@ class RegulatoryState(TypedDict, total=False):
     query: str
     domain: str
     language: str
+    jurisdiction: str  # "india" | "international"
     scenario_id: Optional[str]
 
     # Node 1: Normalizer Node Outputs
@@ -26,10 +27,18 @@ class RegulatoryState(TypedDict, total=False):
     vernacular_mappings: Dict[str, Any]
 
     # Nodes 2-5: Specialized Regulatory Agent Outputs
+    # National (India) Agents
     ipo_evaluation: Dict[str, Any]
     nba_evaluation: Dict[str, Any]
     ayush_evaluation: Dict[str, Any]
+    allied_evaluation: Dict[str, Any]  # FSSAI, DMROA, GI, PPV&FRA
     global_evaluation: Dict[str, Any]
+
+    # International (Global) Agents
+    wipo_evaluation: Dict[str, Any]    # WIPO GRATK 2024 & PCT
+    cbd_evaluation: Dict[str, Any]     # CBD, Nagoya Protocol, Budapest Treaty
+    eu_evaluation: Dict[str, Any]      # EMA THMPD & Food Supplements
+    us_evaluation: Dict[str, Any]      # US FDA DSHEA, Botanical Drugs, MoCRA
 
     # Node 6: Cross-Regulatory Collision Detector Output
     conflict_matrix: List[Dict[str, Any]]

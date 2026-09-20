@@ -8,6 +8,7 @@ let speechRecognitionInstance = null;
 let voiceTranscribedText = "";
 
 const CHATS_STORAGE_KEY = "ipsakti_saved_chats";
+let currentJurisdiction = localStorage.getItem("ayush_jurisdiction") || "india";
 
 document.addEventListener("DOMContentLoaded", () => {
   fetchConfig();
@@ -15,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupUniversalModalListeners();
   initTheme();
   initLanguage();
+  initJurisdiction();
   initSources();
 });
 
@@ -594,7 +596,13 @@ async function runQueryPipeline(queryText, scenarioId, attachedDocs = []) {
     <div class="card-trace-slot"></div>
     <div class="msg-content-text">
       <div style="display:flex; align-items:center; gap:8px; color:#64748B; font-size:13px; padding:12px 0;">
-        <span>${isHi ? '⚙️ धारा 3(p), NBA प्रपत्र 3, नियम 158-B एवं राजपत्र SHA-256 हैश का मूल्यांकन किया जा रहा है...' : '⚙️ Evaluating Section 3(p), NBA Form 3, Rule 158-B, and Gazette SHA-256 hashes...'}</span>
+        <span>${isHi 
+          ? (currentJurisdiction === 'international' 
+              ? '⚙️ WIPO GRATK संधि 2024, CBD नगोया ABS, ईयू THMPD एवं यूएस एफडीए नियमों का मूल्यांकन किया जा रहा है...' 
+              : '⚙️ धारा 3(p), NBA प्रपत्र 3, नियम 158-B, FSSAI आयुर्वेद-आहार एवं DMROA 1954 का मूल्यांकन किया जा रहा है...')
+          : (currentJurisdiction === 'international'
+              ? '⚙️ Evaluating WIPO GRATK Treaty 2024, CBD Nagoya Protocol ABS, EU THMPD Directive, and US FDA Guidance...'
+              : '⚙️ Evaluating Section 3(p), NBA Form 3, Rule 158-B, FSSAI Ayurveda-Aahar, and DMROA 1954...')}</span>
       </div>
     </div>
     <div class="card-workaround-slot"></div>
@@ -623,6 +631,7 @@ async function runQueryPipeline(queryText, scenarioId, attachedDocs = []) {
         query: queryText, 
         scenario_id: scenarioId,
         language: currentAyushLanguage,
+        jurisdiction: currentJurisdiction,
         documents: attachedDocs
       })
     });
@@ -684,49 +693,38 @@ function cleanSectionSigns(str) {
 function buildAgentPillsHtml(conflict_matrix) {
   if (!conflict_matrix || !Array.isArray(conflict_matrix)) return "";
 
-  // Extract specific statutory resources used during this query
-  const ipo = conflict_matrix.find(c => c.jurisdiction && (c.jurisdiction.includes("Patent") || c.jurisdiction.includes("IPO")));
-  const nba = conflict_matrix.find(c => c.jurisdiction && (c.jurisdiction.includes("Biodiversity") || c.jurisdiction.includes("NBA")));
-  const ayush = conflict_matrix.find(c => c.jurisdiction && (c.jurisdiction.includes("Ayush") || c.jurisdiction.includes("SALA") || c.jurisdiction.includes("Licensing")));
-  const global = conflict_matrix.find(c => c.jurisdiction && (c.jurisdiction.includes("Global") || c.jurisdiction.includes("Export") || c.jurisdiction.includes("European")));
+  const activePills = conflict_matrix.map(item => {
+    let displayTitle = item.jurisdiction || "Regulatory Pillar";
+    if (displayTitle.includes("IPO") || displayTitle.includes("Patent Office")) {
+      displayTitle = "⚖️ IPO Patent";
+    } else if (displayTitle.includes("NBA") || displayTitle.includes("Biodiversity Authority") || displayTitle.includes("National Biodiversity")) {
+      displayTitle = "🌿 NBA Biodiversity";
+    } else if (displayTitle.includes("SALA") || displayTitle.includes("Licensing") || displayTitle.includes("Ayush Licensing")) {
+      displayTitle = "🏥 Ayush Licensing";
+    } else if (displayTitle.includes("Allied") || displayTitle.includes("FSSAI") || displayTitle.includes("DMROA")) {
+      displayTitle = "🏷️ Allied Regimes";
+    } else if (displayTitle.includes("WIPO") || displayTitle.includes("GRATK")) {
+      displayTitle = "🌐 WIPO & GRATK";
+    } else if (displayTitle.includes("CBD") || displayTitle.includes("Nagoya") || displayTitle.includes("Budapest")) {
+      displayTitle = "🌿 CBD & Nagoya ABS";
+    } else if (displayTitle.includes("EU") || displayTitle.includes("THMPD") || displayTitle.includes("EMA")) {
+      displayTitle = "🇪🇺 EU EMA & THMPD";
+    } else if (displayTitle.includes("FDA") || displayTitle.includes("DSHEA") || displayTitle.includes("US")) {
+      displayTitle = "🇺🇸 US FDA & DSHEA";
+    } else if (item.icon) {
+      displayTitle = `${item.icon} ${displayTitle}`;
+    }
 
-  const activePills = [];
+    const status = item.status || "Compliance Screening";
+    const color = item.color || "green";
 
-  if (ipo) {
-    activePills.push(`
-      <div class="agent-mini-pill ${ipo.color || 'yellow'}">
-        <span class="pill-title">⚖️ IPO Patent</span>
-        <span class="pill-status ${ipo.color || 'yellow'}">${escapeHtml(cleanSectionSigns(ipo.status))}</span>
+    return `
+      <div class="agent-mini-pill ${color}">
+        <span class="pill-title">${escapeHtml(cleanSectionSigns(displayTitle))}</span>
+        <span class="pill-status ${color}">${escapeHtml(cleanSectionSigns(status))}</span>
       </div>
-    `);
-  }
-
-  if (nba) {
-    activePills.push(`
-      <div class="agent-mini-pill ${nba.color || 'red'}">
-        <span class="pill-title">🌿 NBA Biodiversity</span>
-        <span class="pill-status ${nba.color || 'red'}">${escapeHtml(cleanSectionSigns(nba.status))}</span>
-      </div>
-    `);
-  }
-
-  if (ayush) {
-    activePills.push(`
-      <div class="agent-mini-pill ${ayush.color || 'green'}">
-        <span class="pill-title">🏥 Ayush Licensing</span>
-        <span class="pill-status ${ayush.color || 'green'}">${escapeHtml(cleanSectionSigns(ayush.status))}</span>
-      </div>
-    `);
-  }
-
-  if (global) {
-    activePills.push(`
-      <div class="agent-mini-pill ${global.color || 'yellow'}">
-        <span class="pill-title">🌍 Global Export</span>
-        <span class="pill-status ${global.color || 'yellow'}">${escapeHtml(cleanSectionSigns(global.status))}</span>
-      </div>
-    `);
-  }
+    `;
+  });
 
   return `
     <div class="regulatory-agent-pills">
@@ -4449,45 +4447,94 @@ function initLanguage() {
 }
 
 /* ===================================================
-   VERIFIED STATUTORY & REGULATORY SOURCES DIRECTORY
+   DUAL JURISDICTION (INDIA vs INTERNATIONAL) CONTROLLER
    =================================================== */
-const AYUSH_SOURCES_CATALOG = [
-  // 1. Central Authorities & Statutory Databases
-  {
-    id: "central-ayush",
-    name: "Ministry of Ayush (Govt. of India)",
-    domain: "ayush.gov.in",
-    url: "https://ayush.gov.in",
-    category: "central",
-    categoryLabel: "Central Government",
-    badgeClass: "badge-central",
-    icon: "🏛️",
-    scope: "Nodal Union Ministry — ASU Gazettes, Notifications & Policies",
-    description: "The supreme union executive authority governing Ayurveda, Yoga, Unani, Siddha, and Homoeopathy statutory orders, National Ayush Mission guidelines, and central regulatory directives."
-  },
-  {
-    id: "central-pcimh",
-    name: "PCIM&H (Pharmacopoeia Commission)",
-    domain: "pcimh.gov.in",
-    url: "https://pcimh.gov.in",
-    category: "central",
-    categoryLabel: "Central Statutory Body",
-    badgeClass: "badge-central",
-    icon: "📜",
-    scope: "Ayurvedic, Siddha, Unani & Homoeopathic Pharmacopoeias & Formularies",
-    description: "Statutory body establishing official pharmacopoeial monographs (API, UPI, SPI, HPI), classical shelf-life rules (Rule 161-B), TLC/HPTLC identity standards, and the Ayurvedic Formulary of India (AFI)."
-  },
+function initJurisdiction() {
+  const saved = localStorage.getItem("ayush_jurisdiction");
+  if (saved) {
+    currentJurisdiction = saved.toLowerCase();
+  }
+  updateJurisdictionUI(false);
+}
+
+function toggleJurisdiction(forcedValue) {
+  if (forcedValue) {
+    currentJurisdiction = forcedValue.toLowerCase();
+  } else {
+    currentJurisdiction = currentJurisdiction === "india" ? "international" : "india";
+  }
+  localStorage.setItem("ayush_jurisdiction", currentJurisdiction);
+  updateJurisdictionUI(true);
+}
+
+function updateJurisdictionUI(showToast = false) {
+  const isIntl = currentJurisdiction === "international";
+
+  // 1. Header Jurisdiction Button
+  const headerBtn = document.getElementById("headerJurisdictionBtn");
+  const flagEl = document.getElementById("headerJurisdictionFlag");
+  const labelEl = document.getElementById("headerJurisdictionLabel");
+  if (headerBtn) {
+    if (isIntl) {
+      headerBtn.classList.add("intl-active");
+      headerBtn.title = "Current: International (Global Treaties). Click to switch to India (National).";
+      if (flagEl) flagEl.textContent = "🌐";
+      if (labelEl) labelEl.textContent = "International";
+    } else {
+      headerBtn.classList.remove("intl-active");
+      headerBtn.title = "Current: India (National). Click to switch to International.";
+      if (flagEl) flagEl.textContent = "🇮🇳";
+      if (labelEl) labelEl.textContent = "India";
+    }
+  }
+
+  // 2. Sidebar Item
+  const sidebarIcon = document.getElementById("sidebarJurisdictionIcon");
+  const sidebarText = document.getElementById("sidebarJurisdictionText");
+  const sidebarBadge = document.getElementById("sidebarJurisdictionBadge");
+  if (sidebarIcon) sidebarIcon.textContent = isIntl ? "🌐" : "🇮🇳";
+  if (sidebarText) sidebarText.textContent = isIntl ? "Regime: International" : "Regime: India";
+  if (sidebarBadge) {
+    sidebarBadge.textContent = isIntl ? "GLOBAL" : "NATIONAL";
+    sidebarBadge.style.background = isIntl ? "#2563EB" : "#059669";
+  }
+
+  // 3. Update Sources Modal if open
+  const sourcesModal = document.getElementById("sourcesModal");
+  if (sourcesModal && !sourcesModal.classList.contains("hidden")) {
+    activeSourceCategory = "all";
+    renderSourcesTabsUI();
+    renderSources();
+  }
+
+  // 4. Toast notification
+  if (showToast) {
+    if (isIntl) {
+      showNotificationToast("🌐 Switched to International Regime (WIPO GRATK Treaty 2024, CBD Nagoya ABS, EU THMPD & US FDA)");
+    } else {
+      showNotificationToast("🇮🇳 Switched to India National Regime (IPO, NBA, SALA, FSSAI & DMROA 1954)");
+    }
+  }
+}
+
+/* ===================================================
+   VERIFIED STATUTORY SOURCES CATALOGS (NATIONAL vs INTERNATIONAL)
+   =================================================== */
+
+// 1. NATIONAL (INDIA) SOURCES CATALOG
+const NATIONAL_INDIA_SOURCES_CATALOG = [
+  // Central Authorities & Allied Regimes
   {
     id: "central-ipindia",
-    name: "IP India / CGPDTM (Patents & Trademarks)",
+    name: "Indian Patent Office (CGPDTM / IP India)",
     domain: "ipindia.gov.in",
     url: "https://ipindia.gov.in",
     category: "central",
     categoryLabel: "Central Patent Office",
     badgeClass: "badge-central",
     icon: "⚖️",
-    scope: "Patents Act 1970 — Section 3(p) & Section 3(e) Examination Guidelines",
-    description: "Controller General of Patents, Designs and Trade Marks guidelines for patenting traditional knowledge, botanical innovations, Section 3(p) non-patentability bars, and prior art searches."
+    scope: "Patents Act 1970 & 2024 Rules — Sections 3(p), 3(e), 3(d), Form 1 & Form 2",
+    description: "Apex union authority administering patent grants, examining traditional knowledge exclusions under Section 3(p), mere admixture synergy under Section 3(e), and prior art scrutiny."
   },
   {
     id: "central-nba",
@@ -4495,47 +4542,119 @@ const AYUSH_SOURCES_CATALOG = [
     domain: "nbaindia.org",
     url: "https://nbaindia.org",
     category: "central",
-    categoryLabel: "Central Statutory Body",
+    categoryLabel: "Central Statutory Authority",
     badgeClass: "badge-central",
-    icon: "🌱",
-    scope: "Biological Diversity Act 2002 — Section 3 & 6 Prior Approval (Form I / III)",
-    description: "Autonomous central authority regulating access to Indian biological resources, mandatory Form 3 IPR approvals before patent grant, and commercial Access & Benefit Sharing (ABS) compliance."
+    icon: "🌿",
+    scope: "Biological Diversity Act 2002 & 2024 Rules — Sections 3, 4, 6, 40 NTCO, Form 1 & Form 3",
+    description: "Statutory authority enforcing national sovereignty over Indian biological resources, mandatory Form 3 prior approvals before patent grant, and commercial Access and Benefit Sharing (ABS)."
   },
   {
-    id: "central-cdsco",
-    name: "CDSCO (Central Drugs Standard Control)",
-    domain: "cdsco.gov.in",
-    url: "https://cdsco.gov.in",
+    id: "central-ayush",
+    name: "Ministry of Ayush (Govt. of India)",
+    domain: "ayush.gov.in",
+    url: "https://ayush.gov.in",
     category: "central",
-    categoryLabel: "Central Drug Regulator",
+    categoryLabel: "Central Nodal Ministry",
     badgeClass: "badge-central",
-    icon: "🔬",
-    scope: "Drugs & Cosmetics Act 1940 — ASU Rules & Clinical Trials",
-    description: "National regulatory authority for pharmaceutical standards, Section 33P ASU safety advisory notifications, Form 25D manufacturing parameters, and clinical trial regulations (CT-04 / CT-06)."
+    icon: "🏛️",
+    scope: "Drugs & Cosmetics Act 1940 & Rules 1945 — Rule 158-B & Schedule T GMP",
+    description: "Union executive authority establishing statutory orders, Section 33P ASU notifications, classical vs proprietary licensing routes under Rule 158-B, and Form 24D/25D manufacturing standards."
   },
   {
-    id: "central-tkdl",
-    name: "CSIR-TKDL (Traditional Knowledge Digital Library)",
-    domain: "tkdl.res.in",
-    url: "https://tkdl.res.in",
-    category: "central",
-    categoryLabel: "CSIR & Ayush Repository",
-    badgeClass: "badge-central",
-    icon: "🛡️",
-    scope: "34 Million Pages of Classical Sanskrit/Tamil/Urdu Defense Prior Art",
-    description: "Pioneering Indian digital knowledge repository translating classical medical treatises into five international languages to prevent wrongful patenting of traditional Indian formulations worldwide."
-  },
-  {
-    id: "central-fssai",
-    name: "FSSAI (Food Safety & Standards Authority)",
+    id: "central-fssai-aahar",
+    name: "FSSAI (Food Safety & Standards Authority of India)",
     domain: "fssai.gov.in",
     url: "https://fssai.gov.in",
     category: "central",
     categoryLabel: "Central Food Regulator",
     badgeClass: "badge-central",
     icon: "🥗",
-    scope: "Nutraceutical, Health Supplement & Ayush Aahar Regulations 2022",
-    description: "Apex food safety regulator governing botanicals classified as dietary supplements, botanical permissible extraction limits, purity monographs, and Ayush Aahar co-labeling rules."
+    scope: "Ayurveda Aahar Regulations 2022 & Health Supplements Regulations",
+    description: "Apex food regulator administering the Food Safety and Standards (Ayurveda Aahar) Regulations 2022, mandatory special logo, purity monographs, and non-medicinal nutritional boundaries."
+  },
+  {
+    id: "central-dmroa",
+    name: "Drugs & Magic Remedies (Objectionable Advertisements) Act 1954",
+    domain: "ayush.gov.in",
+    url: "https://ayush.gov.in",
+    category: "central",
+    categoryLabel: "Statutory Advertisement Regime",
+    badgeClass: "badge-central",
+    icon: "🚫",
+    scope: "DMROA 1954 Section 3 & Statutory Schedule — 54 Prohibited Disease Claims",
+    description: "Statutory criminal law strictly prohibiting advertisements claiming diagnosis, cure, mitigation, or prevention of 54 scheduled diseases (diabetes, cancer, hypertension, infertility, obesity)."
+  },
+  {
+    id: "central-gi-registry",
+    name: "Geographical Indications Registry (GI of Goods Act 1999)",
+    domain: "ipindia.gov.in",
+    url: "https://ipindia.gov.in",
+    category: "central",
+    categoryLabel: "GI Registry",
+    badgeClass: "badge-central",
+    icon: "📍",
+    scope: "Geographical Indications of Goods (Registration and Protection) Act 1999",
+    description: "Statutory registry protecting origin-linked Ayurvedic botanicals and traditional preparations (Kashmiri Saffron, Malabar Pepper, Alleppey Cardamom, Kangra Tea, Navara Rice) against misappropriation."
+  },
+  {
+    id: "central-ppvfra",
+    name: "PPV&FRA (Protection of Plant Varieties & Farmers' Rights)",
+    domain: "plantauthority.gov.in",
+    url: "https://plantauthority.gov.in",
+    category: "central",
+    categoryLabel: "Plant Varieties Authority",
+    badgeClass: "badge-central",
+    icon: "🌾",
+    scope: "PPV&FR Act 2001 — Extant Varieties, Farmers' Rights & Benefit Sharing",
+    description: "Statutory authority registering medicinal plant varieties, recognizing community landraces, and protecting indigenous Ayurvedic cultivators' rights against biopiracy."
+  },
+  {
+    id: "central-tm-designs",
+    name: "Trade Marks & Designs Registry (CGPDTM)",
+    domain: "ipindia.gov.in",
+    url: "https://ipindia.gov.in",
+    category: "central",
+    categoryLabel: "Industrial Property Registry",
+    badgeClass: "badge-central",
+    icon: "🏷️",
+    scope: "Trade Marks Act 1999 & Designs Act 2000 — ASU Branding & Packaging",
+    description: "Union registry granting statutory protection for distinctive Ayurvedic product brand names, distinctive container bottle shapes, packaging ornamentation, and trade secrets."
+  },
+  {
+    id: "central-cdsco",
+    name: "CDSCO (Central Drugs Standard Control Organisation)",
+    domain: "cdsco.gov.in",
+    url: "https://cdsco.gov.in",
+    category: "central",
+    categoryLabel: "Central Drug Regulator",
+    badgeClass: "badge-central",
+    icon: "🔬",
+    scope: "Drugs & Cosmetics Act 1940 — ASU Advisory & Phytopharmaceutical Clinical Trials",
+    description: "National pharmaceutical regulator overseeing clinical trial approvals (CT-04 / CT-06), phytopharmaceutical drug approvals, and national pharmacovigilance for herbal medicines."
+  },
+  {
+    id: "central-tkdl",
+    name: "CSIR-TKDL (Traditional Knowledge Digital Library)",
+    domain: "tkdl.res.in",
+    url: "https://tkdl.res.in",
+    category: "vernacular",
+    categoryLabel: "CSIR Defensive Prior Art",
+    badgeClass: "badge-vernacular",
+    icon: "🛡️",
+    scope: "34 Million Pages of Classical Sanskrit/Tamil/Urdu Defense Prior Art",
+    description: "Pioneering Indian digital knowledge repository translating classical medical treatises into five international languages to prevent wrongful patenting of traditional Indian formulations worldwide."
+  },
+  {
+    id: "central-pcimh",
+    name: "PCIM&H (Pharmacopoeia Commission for Indian Medicine)",
+    domain: "pcimh.gov.in",
+    url: "https://pcimh.gov.in",
+    category: "vernacular",
+    categoryLabel: "Central Statutory Body",
+    badgeClass: "badge-vernacular",
+    icon: "📜",
+    scope: "API, UPI, SPI, HPI Official Statutory Monographs & Ayurvedic Formulary of India",
+    description: "Statutory body establishing official pharmacopoeial monographs (API, UPI, SPI, HPI), classical shelf-life rules (Rule 161-B), TLC/HPTLC identity standards, and the Ayurvedic Formulary of India (AFI)."
   },
   {
     id: "central-eaushadhi",
@@ -4543,14 +4662,14 @@ const AYUSH_SOURCES_CATALOG = [
     domain: "eaushadhi.gov.in",
     url: "https://eaushadhi.gov.in",
     category: "central",
-    categoryLabel: "Central Digital Registry",
+    categoryLabel: "National Digital Registry",
     badgeClass: "badge-central",
     icon: "💻",
     scope: "National Supply Chain & Statutory Drug Batch Verification",
     description: "Ministry of Ayush central digital backbone for supply chain tracking, drug inspection reporting, raw material batch quality assurance, and licensed ASU manufacturer verification."
   },
 
-  // 2. State Ayush Licensing Authorities (SALA)
+  // State Licensing Authorities (SALA)
   {
     id: "state-gujarat",
     name: "Gujarat FDCA (Food & Drugs Control Administration)",
@@ -4576,18 +4695,6 @@ const AYUSH_SOURCES_CATALOG = [
     description: "State drug controller for the renowned Kerala Ayurvedic sector, regulating traditional Kashayams, Arishtams, Form 25D commercial manufacturing, and official drug testing laboratories."
   },
   {
-    id: "state-delhi",
-    name: "Directorate of AYUSH, Govt. of NCT of Delhi",
-    domain: "delhi.gov.in",
-    url: "https://delhi.gov.in",
-    category: "state",
-    categoryLabel: "State Licensing Authority",
-    badgeClass: "badge-state",
-    icon: "📍",
-    scope: "UT ASU Drug Manufacturing Clearances & Institutional Approvals",
-    description: "Government of NCT of Delhi state licensing directorate regulating ASU pharmaceutical factories, hospital formularies, and urban wholesale/retail distribution compliance."
-  },
-  {
     id: "state-up",
     name: "Uttar Pradesh AYUSH Department",
     domain: "ayush.up.gov.in",
@@ -4598,18 +4705,6 @@ const AYUSH_SOURCES_CATALOG = [
     icon: "📍",
     scope: "State ASU Manufacturing Licenses, Raw Herb Quarantine & Form 25D",
     description: "Largest northern state regulatory directorate overseeing classical pharmacy approvals, botanical cultivation quarantine clearances, and commercial GMP inspection compliance."
-  },
-  {
-    id: "state-tamilnadu",
-    name: "Tamil Nadu Directorate of Indian Medicine (IMCOPS)",
-    domain: "tn.gov.in",
-    url: "https://tn.gov.in",
-    category: "state",
-    categoryLabel: "State Licensing Authority",
-    badgeClass: "badge-state",
-    icon: "📍",
-    scope: "Siddha, Ayurveda & Unani Manufacturing Licenses & Classical Formulations",
-    description: "Custodian of Siddha medicine manufacturing licenses, classical Palm Leaf manuscript formulations, Form 25D approvals, and the Tamil Nadu State Medicinal Plants Board."
   },
   {
     id: "state-maharashtra",
@@ -4624,6 +4719,18 @@ const AYUSH_SOURCES_CATALOG = [
     description: "Premier industrial licensing regulator overseeing ASU pharmaceutical manufacturing clusters, raw material heavy metal testing, and accelerated stability study clearances."
   },
   {
+    id: "state-tamilnadu",
+    name: "Tamil Nadu Directorate of Indian Medicine (IMCOPS)",
+    domain: "tn.gov.in",
+    url: "https://tn.gov.in",
+    category: "state",
+    categoryLabel: "State Licensing Authority",
+    badgeClass: "badge-state",
+    icon: "📍",
+    scope: "Siddha, Ayurveda & Unani Manufacturing Licenses & Classical Formulations",
+    description: "Custodian of Siddha medicine manufacturing licenses, classical Palm Leaf manuscript formulations, Form 25D approvals, and the Tamil Nadu State Medicinal Plants Board."
+  },
+  {
     id: "state-karnataka",
     name: "Karnataka Directorate of AYUSH",
     domain: "ayush.karnataka.gov.in",
@@ -4635,82 +4742,20 @@ const AYUSH_SOURCES_CATALOG = [
     scope: "Form 25D Drug Controller & State Biodiversity Board Coordination",
     description: "State licensing authority supervising Western Ghats botanical biodiversity permits, modern phyto-formulation licenses, and ASU analytical lab approvals."
   },
-
-  // 3. WIPO & Foreign / International Regimes
   {
-    id: "wipo-igc",
-    name: "WIPO (World Intellectual Property Organization)",
-    domain: "wipo.int",
-    url: "https://www.wipo.int",
-    category: "wipo",
-    categoryLabel: "Global IP Organization",
-    badgeClass: "badge-wipo",
-    icon: "🌍",
-    scope: "Intergovernmental Committee on Traditional Knowledge & Genetic Resources",
-    description: "Geneva-based UN agency leading international treaties on Intellectual Property, Genetic Resources, and Traditional Knowledge (IGC), preventing defensive patent misappropriation."
-  },
-  {
-    id: "uspto-gov",
-    name: "USPTO (United States Patent and Trademark Office)",
-    domain: "uspto.gov",
-    url: "https://www.uspto.gov",
-    category: "wipo",
-    categoryLabel: "United States Patent Office",
-    badgeClass: "badge-wipo",
-    icon: "🇺🇸",
-    scope: "35 U.S.C. 102/103 Prior Art Scrutiny & TKDL Collaboration Database",
-    description: "Official US patent registry utilizing Indian TKDL prior art access agreement to reject obvious patent applications claiming traditional botanical remedies."
-  },
-  {
-    id: "fda-botanical",
-    name: "US FDA Botanical Guidance for Industry",
-    domain: "fda.gov",
-    url: "https://www.fda.gov",
-    category: "wipo",
-    categoryLabel: "United States Drug Regulator",
-    badgeClass: "badge-wipo",
-    icon: "🇺🇸",
-    scope: "Botanical Drug Development Guidance — IND / NDA Batch Consistency",
-    description: "Food and Drug Administration guidance specifying quality, chemistry, manufacturing, controls (CMC), and multi-batch fingerprinting for complex herbal and polyherbal extracts."
-  },
-  {
-    id: "ema-thmpd",
-    name: "EMA / HMPC (European Medicines Agency)",
-    domain: "ema.europa.eu",
-    url: "https://www.ema.europa.eu",
-    category: "wipo",
-    categoryLabel: "European Union Regulator",
-    badgeClass: "badge-wipo",
-    icon: "🇪🇺",
-    scope: "Directive 2004/24/EC Traditional Herbal Medicinal Products (THMPD)",
-    description: "European Committee on Herbal Medicinal Products monographs establishing 30-year bibliographic traditional use rules (15 years within EU) for herbal registration."
-  },
-  {
-    id: "uk-mhra",
-    name: "UK MHRA (Medicines & Healthcare products Regulator)",
-    domain: "gov.uk/mhra",
-    url: "https://www.gov.uk/mhra",
-    category: "wipo",
-    categoryLabel: "United Kingdom Drug Regulator",
-    badgeClass: "badge-wipo",
-    icon: "🇬🇧",
-    scope: "Traditional Herbal Registration (THR) Scheme & Safety Monograph Guidance",
-    description: "Executive agency regulating traditional herbal medicines in the United Kingdom under the THR certification scheme based on long-standing traditional medicinal safety and efficacy."
-  },
-  {
-    id: "who-traditional",
-    name: "WHO Traditional Medicine & Global Centre (Jamnagar)",
-    domain: "who.int",
-    url: "https://www.who.int",
-    category: "wipo",
-    categoryLabel: "World Health Organization",
-    badgeClass: "badge-wipo",
-    icon: "🌐",
-    scope: "WHO Global Centre for Traditional Medicine & Quality Assurance Guidelines",
-    description: "Global health body standardizing botanical safety, Good Agricultural and Collection Practices (GACP), and evidence-based integration of traditional medicines into global health systems."
+    id: "state-delhi",
+    name: "Directorate of AYUSH, Govt. of NCT of Delhi",
+    domain: "delhi.gov.in",
+    url: "https://delhi.gov.in",
+    category: "state",
+    categoryLabel: "State Licensing Authority",
+    badgeClass: "badge-state",
+    icon: "📍",
+    scope: "UT ASU Drug Manufacturing Clearances & Institutional Approvals",
+    description: "Government of NCT of Delhi state licensing directorate regulating ASU pharmaceutical factories, hospital formularies, and urban wholesale/retail distribution compliance."
   },
 
-  // 4. Vernacular & Text Swapping / Dialect Datasets
+  // Vernacular Lexicons & Dialect Concordances
   {
     id: "vernacular-echarak",
     name: "NMPB e-Charak (National Medicinal Plants Board)",
@@ -4725,7 +4770,7 @@ const AYUSH_SOURCES_CATALOG = [
   },
   {
     id: "vernacular-api-sanskrit",
-    name: "Ayurvedic Pharmacopoeia (API) Sanskrit Concordance",
+    name: "Ayurvedic Pharmacopoeia (API) Classical Sanskrit Concordance",
     domain: "pcimh.gov.in",
     url: "https://pcimh.gov.in",
     category: "vernacular",
@@ -4737,7 +4782,7 @@ const AYUSH_SOURCES_CATALOG = [
   },
   {
     id: "vernacular-upi-greco",
-    name: "Unani Pharmacopoeia (UPI) & Persian/Arabic Lexicon",
+    name: "Unani Pharmacopoeia (UPI) Greco-Arab & Persian Lexicon",
     domain: "pcimh.gov.in",
     url: "https://pcimh.gov.in",
     category: "vernacular",
@@ -4758,22 +4803,217 @@ const AYUSH_SOURCES_CATALOG = [
     icon: "📜",
     scope: "Ancient Palm-Leaf Agathiyar Gunavagadam Dialect Term Swapping",
     description: "Linguistic mapping corpus resolving ancient poetic Tamil palm-leaf manuscript names (Agathiyar, Therayar, Bogar) into validated botanical, mineral, and marine sources."
+  }
+];
+
+// 2. INTERNATIONAL SOURCES CATALOG
+const INTERNATIONAL_SOURCES_CATALOG = [
+  // Multilateral Patent & IP Treaties
+  {
+    id: "intl-wipo-gratk",
+    name: "WIPO GRATK Treaty (Geneva Diplomatic Conference 2024)",
+    domain: "wipo.int",
+    url: "https://www.wipo.int/tk/en/news/2024/news_0007.html",
+    category: "treaty",
+    categoryLabel: "Multilateral IP Treaty",
+    badgeClass: "badge-wipo",
+    icon: "🌐",
+    scope: "Mandatory Patent Disclosure of Genetic Resources & Associated Traditional Knowledge",
+    description: "Historic treaty adopted May 2024 mandating patent applicants worldwide to disclose the country of origin or Indigenous source of biological resources and traditional knowledge."
   },
   {
-    id: "vernacular-tkrc",
-    name: "CSIR-TKDL Traditional Knowledge Resource Classification (TKRC)",
-    domain: "tkdl.res.in",
-    url: "https://tkdl.res.in",
-    category: "vernacular",
-    categoryLabel: "Multilingual IPC Ontology",
+    id: "intl-wipo-pct",
+    name: "WIPO Patent Cooperation Treaty (PCT)",
+    domain: "wipo.int",
+    url: "https://www.wipo.int/pct/en/",
+    category: "treaty",
+    categoryLabel: "International Patent System",
+    badgeClass: "badge-wipo",
+    icon: "🌍",
+    scope: "PCT Chapters I & II — Unified 157-Country International Patent Filings",
+    description: "Geneva-based global patent filing regime enabling a single unified international patent application seeking protection across up to 157 contracting states simultaneously."
+  },
+  {
+    id: "intl-budapest",
+    name: "Budapest Treaty on the Deposit of Microorganisms",
+    domain: "wipo.int",
+    url: "https://www.wipo.int/treaties/en/registration/budapest/",
+    category: "treaty",
+    categoryLabel: "Microbiological IP Treaty",
+    badgeClass: "badge-wipo",
+    icon: "🧫",
+    scope: "International Depositary Authority (IDA) Deposits for Biological Patents",
+    description: "International treaty recognizing deposit of microorganisms and biological materials with any International Depositary Authority (e.g., MTCC Chandigarh, ATCC USA) for patent disclosure."
+  },
+  {
+    id: "intl-wto-trips",
+    name: "WTO TRIPS Agreement (Trade-Related Aspects of IP Rights)",
+    domain: "wto.org",
+    url: "https://www.wto.org/english/tratop_e/trips_e/trips_e.htm",
+    category: "treaty",
+    categoryLabel: "Multilateral Trade Agreement",
+    badgeClass: "badge-wipo",
+    icon: "⚖️",
+    scope: "Articles 27.1, 27.3(b) & Article 29 — Patentability Standards & Exceptions",
+    description: "World Trade Organization legal agreement governing international patent standards, sui generis plant variety protection options, and compulsory licensing flexibilities."
+  },
+  {
+    id: "intl-wipo-madrid-hague",
+    name: "WIPO Madrid & Hague Systems",
+    domain: "wipo.int",
+    url: "https://www.wipo.int/madrid/en/",
+    category: "treaty",
+    categoryLabel: "Global Brands & Designs",
+    badgeClass: "badge-wipo",
+    icon: "🏷️",
+    scope: "International Trademark & Industrial Design Registrations in 130+ Countries",
+    description: "Centralized international registration systems protecting Ayurvedic proprietary brand trademarks and distinctive container designs across major export markets under one application."
+  },
+  {
+    id: "intl-uspto",
+    name: "USPTO (United States Patent and Trademark Office)",
+    domain: "uspto.gov",
+    url: "https://www.uspto.gov",
+    category: "treaty",
+    categoryLabel: "US Patent Authority",
+    badgeClass: "badge-wipo",
+    icon: "🇺🇸",
+    scope: "35 U.S.C. 102/103 Prior Art Scrutiny & TKDL Bilateral Access Agreement",
+    description: "Official United States patent office utilizing bilateral access to the Indian TKDL database to reject patent applications attempting to misappropriate traditional Ayurvedic remedies."
+  },
+
+  // Biodiversity & Nagoya Protocol ABS Treaties
+  {
+    id: "intl-cbd",
+    name: "Convention on Biological Diversity (CBD)",
+    domain: "cbd.int",
+    url: "https://www.cbd.int",
+    category: "abs",
+    categoryLabel: "UN Biodiversity Treaty",
     badgeClass: "badge-vernacular",
+    icon: "🌿",
+    scope: "Articles 8(j) & 15 — Sovereign Rights over Genetic Resources & Fair Benefit-Sharing",
+    description: "Landmark multilateral treaty establishing national sovereign rights over biological resources, prior informed consent (PIC), and protection of traditional indigenous knowledge."
+  },
+  {
+    id: "intl-nagoya-abs",
+    name: "Nagoya Protocol & ABS Clearing-House (ABSCH)",
+    domain: "absch.cbd.int",
+    url: "https://absch.cbd.int",
+    category: "abs",
+    categoryLabel: "Access & Benefit-Sharing",
+    badgeClass: "badge-vernacular",
+    icon: "🌱",
+    scope: "Internationally Recognized Certificate of Compliance (IRCC) & MAT Verification",
+    description: "Global registry tracking cross-border access to genetic resources, verifiable IRCC certificates of compliance, and mutually agreed terms (MAT) for benefit-sharing."
+  },
+  {
+    id: "intl-cites",
+    name: "CITES (Convention on International Trade in Endangered Species)",
+    domain: "cites.org",
+    url: "https://cites.org",
+    category: "abs",
+    categoryLabel: "Trade Species Treaty",
+    badgeClass: "badge-vernacular",
+    icon: "🛡️",
+    scope: "Appendices I, II & III — Export Clearances for Red Sanders, Kutki & Jatamansi",
+    description: "International agreement regulating cross-border commercial trade in endangered Ayurvedic medicinal plant species, requiring non-detriment findings (NDF) and CITES export permits."
+  },
+
+  // Foreign Drug & Food Regulators
+  {
+    id: "intl-ema-thmpd",
+    name: "EMA / HMPC (European Medicines Agency)",
+    domain: "ema.europa.eu",
+    url: "https://www.ema.europa.eu",
+    category: "regulator",
+    categoryLabel: "European Union Regulator",
+    badgeClass: "badge-state",
+    icon: "🇪🇺",
+    scope: "Directive 2004/24/EC on Traditional Herbal Medicinal Products (THMPD)",
+    description: "European Committee on Herbal Medicinal Products monographs establishing 30-year bibliographic traditional use rules (15 years within EU) for herbal medicine registration."
+  },
+  {
+    id: "intl-efsa-supplements",
+    name: "EFSA / EU Directive 2002/46/EC (Food Supplements)",
+    domain: "efsa.europa.eu",
+    url: "https://www.efsa.europa.eu",
+    category: "regulator",
+    categoryLabel: "EU Food Safety Authority",
+    badgeClass: "badge-state",
+    icon: "🇪🇺",
+    scope: "Directive 2002/46/EC & Article 13.1 On-Hold Botanical Health Claims",
+    description: "European food safety regulator governing botanical food supplement maximum limits, purity criteria, and the European on-hold herbal health claims registry."
+  },
+  {
+    id: "intl-us-fda-botanical",
+    name: "US FDA Botanical Drug Guidance for Industry",
+    domain: "fda.gov",
+    url: "https://www.fda.gov",
+    category: "regulator",
+    categoryLabel: "US Drug Regulator",
+    badgeClass: "badge-state",
+    icon: "🇺🇸",
+    scope: "CDER Botanical Drug Development Guidance — IND / NDA Fingerprinting & CMC",
+    description: "US Food and Drug Administration guidance specifying quality, chemistry, manufacturing, controls (CMC), and multi-batch spectroscopic fingerprinting for complex herbal extracts."
+  },
+  {
+    id: "intl-us-dshea",
+    name: "US FDA DSHEA & 21 CFR Part 101/111",
+    domain: "fda.gov",
+    url: "https://www.fda.gov",
+    category: "regulator",
+    categoryLabel: "US Dietary Supplements",
+    badgeClass: "badge-state",
+    icon: "🇺🇸",
+    scope: "DSHEA 1994 — Structure/Function Claims, Disclaimer & NDI Notifications",
+    description: "US dietary supplement statutory regime permitting structure/function claims with mandatory FDA disclaimer, cGMP 21 CFR 111 compliance, and 75-day New Dietary Ingredient notices."
+  },
+  {
+    id: "intl-us-ftc",
+    name: "US Federal Trade Commission (FTC Health Guidance)",
+    domain: "ftc.gov",
+    url: "https://www.ftc.gov",
+    category: "regulator",
+    categoryLabel: "US Advertising Regulator",
+    badgeClass: "badge-state",
+    icon: "🇺🇸",
+    scope: "FTC Health Products Compliance Guidance — Scientific Substantiation Standards",
+    description: "US consumer protection agency enforcing competent and reliable scientific evidence (CARSE) for all health and wellness marketing claims made by Ayurvedic dietary brands."
+  },
+  {
+    id: "intl-uk-mhra",
+    name: "UK MHRA (Medicines & Healthcare products Regulatory Agency)",
+    domain: "gov.uk/mhra",
+    url: "https://gov.uk/mhra",
+    category: "regulator",
+    categoryLabel: "United Kingdom Regulator",
+    badgeClass: "badge-state",
+    icon: "🇬🇧",
+    scope: "Traditional Herbal Registration (THR) Scheme & Safety Monograph Guidance",
+    description: "Executive agency regulating traditional herbal medicines in the United Kingdom under the THR certification scheme based on long-standing traditional medicinal safety and efficacy."
+  },
+  {
+    id: "intl-who-traditional",
+    name: "WHO Traditional Medicine & Global Centre (Jamnagar)",
+    domain: "who.int",
+    url: "https://www.who.int",
+    category: "regulator",
+    categoryLabel: "World Health Organization",
+    badgeClass: "badge-state",
     icon: "🌐",
-    scope: "International Patent Classification (IPC) Linked 200,000+ Subgroup Ontology",
-    description: "Structured taxonomic knowledge classification system bridging vernacular Indian Ayurvedic/Unani/Siddha medical terms directly into IPC patent patentability search keys."
+    scope: "WHO Global Centre for Traditional Medicine (GCTM) & GACP Guidelines",
+    description: "UN specialized health agency leading the WHO Global Centre for Traditional Medicine in Jamnagar (India), formulating global botanical Good Agricultural and Collection Practices (GACP)."
   }
 ];
 
 let activeSourceCategory = "all";
+
+function getActiveSourcesCatalog() {
+  return currentJurisdiction === "international" 
+    ? INTERNATIONAL_SOURCES_CATALOG 
+    : NATIONAL_INDIA_SOURCES_CATALOG;
+}
 
 function openSourcesModal() {
   const modal = document.getElementById("sourcesModal");
@@ -4784,7 +5024,7 @@ function openSourcesModal() {
   const searchInput = document.getElementById("sourcesSearchInput");
   if (searchInput) searchInput.value = "";
   activeSourceCategory = "all";
-  updateSourceTabsUI();
+  renderSourcesTabsUI();
   renderSources();
 }
 
@@ -4795,28 +5035,86 @@ function closeSourcesModal() {
 
 function selectSourceCategory(category) {
   activeSourceCategory = category;
-  updateSourceTabsUI();
+  renderSourcesTabsUI();
   renderSources();
 }
 
-function updateSourceTabsUI() {
-  const tabs = {
-    all: document.getElementById("srcTabAll"),
-    central: document.getElementById("srcTabCentral"),
-    state: document.getElementById("srcTabState"),
-    wipo: document.getElementById("srcTabWipo"),
-    vernacular: document.getElementById("srcTabVernacular")
-  };
-  
-  Object.keys(tabs).forEach(cat => {
-    if (tabs[cat]) {
-      if (cat === activeSourceCategory) {
-        tabs[cat].classList.add("active");
-      } else {
-        tabs[cat].classList.remove("active");
-      }
-    }
-  });
+function renderSourcesTabsUI() {
+  const tabsRow = document.getElementById("sourcesTabsRow");
+  const modalTitle = document.getElementById("sourcesModalTitle");
+  const modalDesc = document.getElementById("sourcesModalDesc");
+  const footerText = document.getElementById("sourcesFooterText");
+  const isIntl = currentJurisdiction === "international";
+
+  const catalog = isIntl ? INTERNATIONAL_SOURCES_CATALOG : NATIONAL_INDIA_SOURCES_CATALOG;
+
+  if (modalTitle) {
+    modalTitle.innerHTML = isIntl 
+      ? "🌐 International Statutory &amp; Treaty Sources Directory" 
+      : "📚 Statutory &amp; Regulatory Sources Directory (India)";
+  }
+
+  if (modalDesc) {
+    modalDesc.innerHTML = isIntl
+      ? "Authoritative global treaty frameworks &amp; foreign drug regulators: WIPO GRATK Treaty 2024, CBD Nagoya ABS, Budapest Treaty, WTO TRIPS, EU EMA THMPD, US FDA, and WHO Traditional Medicine."
+      : "Ground-truth national repositories: Patents Act 1970, Biological Diversity Act 2024, D&C Act (Rule 158-B), FSSAI Ayurveda-Aahar, DMROA 1954, GI Act 1999, TKDL, and PCIM&H Pharmacopoeias.";
+  }
+
+  if (footerText) {
+    footerText.innerHTML = isIntl
+      ? `🔒 All ${catalog.length} international treaty frameworks and foreign regulatory regimes cross-referenced against official multilateral registries.`
+      : `🔒 All ${catalog.length} Indian statutory authorities cryptographically cross-referenced against official gazettes with SHA-256 integrity validation.`;
+  }
+
+  if (!tabsRow) return;
+
+  if (isIntl) {
+    const treatyCount = catalog.filter(s => s.category === "treaty").length;
+    const absCount = catalog.filter(s => s.category === "abs").length;
+    const regCount = catalog.filter(s => s.category === "regulator").length;
+
+    tabsRow.innerHTML = `
+      <button class="sources-tab-btn ${activeSourceCategory === 'all' ? 'active' : ''}" onclick="selectSourceCategory('all')">
+        <span>🌐 All Global Sources</span>
+        <span class="badge-count">${catalog.length}</span>
+      </button>
+      <button class="sources-tab-btn ${activeSourceCategory === 'treaty' ? 'active' : ''}" onclick="selectSourceCategory('treaty')">
+        <span>🌍 WIPO &amp; Patent Treaties</span>
+        <span class="badge-count">${treatyCount}</span>
+      </button>
+      <button class="sources-tab-btn ${activeSourceCategory === 'abs' ? 'active' : ''}" onclick="selectSourceCategory('abs')">
+        <span>🌿 CBD &amp; Nagoya ABS</span>
+        <span class="badge-count">${absCount}</span>
+      </button>
+      <button class="sources-tab-btn ${activeSourceCategory === 'regulator' ? 'active' : ''}" onclick="selectSourceCategory('regulator')">
+        <span>🏛️ EU, US &amp; Global Regulators</span>
+        <span class="badge-count">${regCount}</span>
+      </button>
+    `;
+  } else {
+    const centralCount = catalog.filter(s => s.category === "central").length;
+    const stateCount = catalog.filter(s => s.category === "state").length;
+    const vernCount = catalog.filter(s => s.category === "vernacular").length;
+
+    tabsRow.innerHTML = `
+      <button class="sources-tab-btn ${activeSourceCategory === 'all' ? 'active' : ''}" onclick="selectSourceCategory('all')">
+        <span>🇮🇳 All National Sources</span>
+        <span class="badge-count">${catalog.length}</span>
+      </button>
+      <button class="sources-tab-btn ${activeSourceCategory === 'central' ? 'active' : ''}" onclick="selectSourceCategory('central')">
+        <span>🏛️ Central IP, Drug &amp; Allied</span>
+        <span class="badge-count">${centralCount}</span>
+      </button>
+      <button class="sources-tab-btn ${activeSourceCategory === 'state' ? 'active' : ''}" onclick="selectSourceCategory('state')">
+        <span>📍 State Ayush Licensing</span>
+        <span class="badge-count">${stateCount}</span>
+      </button>
+      <button class="sources-tab-btn ${activeSourceCategory === 'vernacular' ? 'active' : ''}" onclick="selectSourceCategory('vernacular')">
+        <span>📜 Pharmacopoeias &amp; TKDL</span>
+        <span class="badge-count">${vernCount}</span>
+      </button>
+    `;
+  }
 }
 
 function filterSources() {
@@ -4829,8 +5127,9 @@ function renderSources() {
   
   const searchInput = document.getElementById("sourcesSearchInput");
   const query = searchInput ? searchInput.value.trim().toLowerCase() : "";
+  const catalog = getActiveSourcesCatalog();
   
-  const filtered = AYUSH_SOURCES_CATALOG.filter(item => {
+  const filtered = catalog.filter(item => {
     const matchesCategory = (activeSourceCategory === "all") || (item.category === activeSourceCategory);
     if (!matchesCategory) return false;
     
@@ -4841,11 +5140,12 @@ function renderSources() {
   });
   
   if (filtered.length === 0) {
+    const isIntl = currentJurisdiction === "international";
     grid.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: #64748B;">
         <div style="font-size: 32px; margin-bottom: 8px;">🔍</div>
         <strong style="font-size: 14px; color: #0F172A;">No statutory data sources found</strong>
-        <p style="font-size: 12px; margin-top: 4px;">Try searching for "Gujarat", "WIPO", "Section 3(p)", "e-Charak", or "Pharmacopoeia"</p>
+        <p style="font-size: 12px; margin-top: 4px;">${isIntl ? 'Try searching for "WIPO", "Nagoya", "EMA", "FDA", or "Budapest"' : 'Try searching for "IPO", "NBA", "FSSAI", "DMROA", "Rule 158-B", or "Pharmacopoeia"'}</p>
       </div>
     `;
     return;
@@ -4880,7 +5180,7 @@ function renderSources() {
 }
 
 function initSources() {
-  // Pre-render sources grid if modal exists
+  renderSourcesTabsUI();
   renderSources();
 }
 

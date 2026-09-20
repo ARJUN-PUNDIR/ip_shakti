@@ -37,6 +37,11 @@
         </div>
 
         <div class="threads-label" id="sidebarRegToolsLabel" style="margin-top: 14px;">REGULATORY TOOLS</div>
+        <div class="thread-item jurisdiction-sidebar-item" id="sidebarJurisdictionItem" onclick="toggleJurisdiction()" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); cursor: pointer;" title="Toggle Jurisdiction: India (National) vs International (Global Treaties)">
+          <span class="thread-icon" id="sidebarJurisdictionIcon">🇮🇳</span>
+          <div class="thread-text" id="sidebarJurisdictionText" style="font-weight: 600; color: #047857;">Regime: India</div>
+          <span class="sidebar-pro-pill" id="sidebarJurisdictionBadge" style="font-size: 10px; font-weight: 700; background: #059669; color: #FFF; padding: 1px 6px; border-radius: 4px; margin-left: auto;">NATIONAL</span>
+        </div>
         <div class="thread-item pro-sidebar-item" onclick="toggleTierMode()" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25);">
           <span class="thread-icon" style="color: #D97706;">★</span>
           <div class="thread-text" id="sidebarItemPaidText" style="font-weight: 600; color: #92400E;">Assist Plus</div>
@@ -138,6 +143,10 @@
         </div>
 
         <div class="header-right-group">
+          <button class="header-icon-btn jurisdiction-toggle-btn" id="headerJurisdictionBtn" onclick="toggleJurisdiction()" title="Switch Regulatory Regime: India (National) vs International (Global Treaties)">
+            <span class="jurisdiction-flag" id="headerJurisdictionFlag">🇮🇳</span>
+            <span class="jurisdiction-label" id="headerJurisdictionLabel">India</span>
+          </button>
           <button class="header-pro-btn" id="headerProBtn" onclick="toggleTierMode()" title="Switch between Free and Assist Plus">
             <span class="pro-sparkle">★</span>
             <span class="pro-label" id="headerProBtnLabel">Assist Plus</span>
@@ -1034,9 +1043,9 @@
     <div class="modal-sheet-card sources-modal-container">
       <div class="modal-sheet-header">
         <div>
-          <div class="sheet-title">📚 Official Statutory, Regulatory &amp; Vernacular Data Sources</div>
-          <div class="sources-header-desc">
-            Official government gazette portals, pharmacopoeial bodies, state licensing authorities, global IP treaties, and dialect concordances grounding IP-SAKTI Sahayak.
+          <div class="sheet-title" id="sourcesModalTitle">📚 Statutory &amp; Regulatory Sources Directory (India)</div>
+          <div class="sources-header-desc" id="sourcesModalDesc">
+            Official government gazette portals, statutory councils, pharmacopoeial bodies, state licensing authorities, and vernacular concordances grounding IP-SAKTI Sahayak.
           </div>
         </div>
         <button class="modal-close-btn" onclick="closeSourcesModal()">✕</button>
@@ -1046,29 +1055,10 @@
       <div class="sources-controls-bar">
         <div class="sources-search-wrapper">
           <span class="sources-search-icon">🔍</span>
-          <input type="text" id="sourcesSearchInput" class="sources-search-input" placeholder="Search authorities, gazettes, state portals, WIPO, or vernacular datasets..." oninput="filterSources()">
+          <input type="text" id="sourcesSearchInput" class="sources-search-input" placeholder="Search authorities, acts, gazettes, state portals, or treaties..." oninput="filterSources()">
         </div>
-        <div class="sources-tabs-row">
-          <button class="sources-tab-btn active" id="srcTabAll" onclick="selectSourceCategory('all')">
-            <span>🌐 All Sources</span>
-            <span class="badge-count" id="srcCountAll">26</span>
-          </button>
-          <button class="sources-tab-btn" id="srcTabCentral" onclick="selectSourceCategory('central')">
-            <span>🏛️ Central Indian Authorities</span>
-            <span class="badge-count">8</span>
-          </button>
-          <button class="sources-tab-btn" id="srcTabState" onclick="selectSourceCategory('state')">
-            <span>📍 State Ayush Licensing</span>
-            <span class="badge-count">7</span>
-          </button>
-          <button class="sources-tab-btn" id="srcTabWipo" onclick="selectSourceCategory('wipo')">
-            <span>🌍 WIPO &amp; Foreign Regimes</span>
-            <span class="badge-count">6</span>
-          </button>
-          <button class="sources-tab-btn" id="srcTabVernacular" onclick="selectSourceCategory('vernacular')">
-            <span>🌿 Vernacular &amp; Swapping Datasets</span>
-            <span class="badge-count">5</span>
-          </button>
+        <div class="sources-tabs-row" id="sourcesTabsRow">
+          <!-- Rendered dynamically based on active jurisdiction -->
         </div>
       </div>
 
@@ -1080,8 +1070,8 @@
       </div>
 
       <div class="modal-sheet-footer" style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 11px; color: #64748B;">
-          🔒 All 26 authorities cryptographically cross-referenced against official gazette registries with SHA-256 integrity validation.
+        <span id="sourcesFooterText" style="font-size: 11px; color: #64748B;">
+          🔒 All authorities cryptographically cross-referenced against official statutory gazettes with SHA-256 integrity validation.
         </span>
         <button class="btn-confirm" onclick="closeSourcesModal()">Close Sources</button>
       </div>
