@@ -45,6 +45,23 @@ def ayush_agent_node(state: RegulatoryState) -> Dict[str, Any]:
             "For specific clinical indications, obtain a State Ayush Drug License under Rule 158-B."
         )
         license_type = "Ayurveda Aahara (FSSAI) or ASU Proprietary Drug (SALA)"
+    elif any(k in query for k in ["phytopharmaceutical", "rule 122-e", "biomarker", "purified fraction"]):
+        status = "🔬 CDSCO Phytopharmaceutical IND Pathway (Rule 122-E)"
+        color = "green"
+        reasoning = (
+            "Governed under D&C Amendment Rules 2015 (Rule 122-E & Schedule Y). Requires minimum 4 quantified and standardized "
+            "chemical biomarkers, sub-chronic toxicity, safety pharmacology, and full Phase I–III GCP clinical trials under Form CT-20. "
+            "Exempt from Section 3(p) traditional knowledge bar due to purified chemical fingerprint."
+        )
+        license_type = "Phytopharmaceutical Drug Approval (Form CT-20 / Central DCGI)"
+    elif any(k in query for k in ["new drug", "non-classical", "synthetic excipient", "unprecedented indication"]):
+        status = "🔬 CDSCO New Drug Central Approval (NDCT Rules 2019)"
+        color = "yellow"
+        reasoning = (
+            "Formulations introducing novel synthetic excipients or unprecedented clinical indications require Central DCGI permission "
+            "under New Drugs and Clinical Trials Rules 2019 with multi-center Phase I-III clinical trial clearance."
+        )
+        license_type = "New Drug Approval (Form CT-20 / Central CDSCO)"
     elif any(k in query for k in ["classical", "first schedule", "charaka", "sushruta"]):
         status = "✅ Classical ASU Drug (Zero Clinical Trials Required)"
         color = "green"
