@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=36">
+  <link rel="stylesheet" href="/static/css/style.css?v=37">
 </head>
 <body>
 
@@ -332,6 +332,81 @@
         <!-- Attached Documents Tray -->
         <div class="attached-docs-tray hidden" id="attachedDocsTray"></div>
 
+        <!-- FORMULATION CLASSIFICATION WIZARD (Matching User Reference) -->
+        <div class="formulation-wizard-card" id="formulationWizardCard">
+          <div class="wizard-toggle-header" onclick="toggleFormulationWizard()" title="Click to collapse/expand wizard">
+            <div class="wizard-header-title">
+              <span class="wizard-chevron" id="wizardChevron">⌵</span>
+              <span class="wizard-icon">🧪</span>
+              <span class="wizard-title-text">Formulation Classification Wizard</span>
+            </div>
+            <span class="wizard-header-badge">Statutory Pathway Triage</span>
+          </div>
+
+          <div class="wizard-collapsible-content" id="wizardCollapsibleContent">
+            <div class="wizard-instruction">
+              Answer a few questions to identify the likely regulatory pathway.
+            </div>
+
+            <div class="wizard-blocks-grid">
+              <!-- Block 1: Product description -->
+              <div class="wizard-field-group">
+                <label class="wizard-field-label" for="wizardProdDesc">Product description:</label>
+                <textarea 
+                  id="wizardProdDesc" 
+                  class="wizard-textarea" 
+                  rows="3" 
+                  placeholder="e.g., Herbal tablet for joint pain with 5 classical ingredients..."></textarea>
+              </div>
+
+              <!-- Block 2: Intended use -->
+              <div class="wizard-field-group">
+                <label class="wizard-field-label" for="wizardIntendedUse">Intended use:</label>
+                <div class="wizard-select-wrap">
+                  <select id="wizardIntendedUse" class="wizard-select">
+                    <option value="" disabled selected>Choose an option</option>
+                    <option value="therapeutic">Therapeutic / Medicinal treatment</option>
+                    <option value="dietary">Dietary supplement / Ayurveda Aahar</option>
+                    <option value="cosmetic">Cosmetic / skin glow / beautification</option>
+                    <option value="phytopharm">Standardized purified fraction (Phytopharmaceutical)</option>
+                    <option value="new_drug">Novel indication / synthetic excipients (New Drug)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Block 3: Ingredients (optional) -->
+              <div class="wizard-field-group">
+                <label class="wizard-field-label" for="wizardIngredients">Ingredients (optional):</label>
+                <textarea 
+                  id="wizardIngredients" 
+                  class="wizard-textarea" 
+                  rows="3" 
+                  placeholder="Ashwagandha, Guggulu, Shallaki, etc."></textarea>
+              </div>
+
+              <!-- Block 4: Classical text reference (optional) -->
+              <div class="wizard-field-group">
+                <label class="wizard-field-label" for="wizardClassicalRef">Classical text reference (optional):</label>
+                <textarea 
+                  id="wizardClassicalRef" 
+                  class="wizard-textarea" 
+                  rows="3" 
+                  placeholder="e.g., Charaka Samhita Chikitsasthana 5/24"></textarea>
+              </div>
+            </div>
+
+            <!-- Classify Action Button -->
+            <button type="button" class="btn-wizard-classify" id="btnWizardClassify" onclick="executeSimpleClassification()">
+              <span>🎯</span> Classify
+            </button>
+
+            <!-- Classification Result Output -->
+            <div class="wizard-result-box hidden" id="wizardResultBox">
+              <!-- Dynamically populated via executeSimpleClassification() -->
+            </div>
+          </div>
+        </div>
+
         <div class="input-pill-wrapper">
 
           <button class="input-action-btn mic-btn" id="voiceMicBtn" title="Speak via Web Speech Recognition (Voice Query)">
@@ -347,7 +422,7 @@
             id="userPromptInput" 
             class="chat-textarea" 
             rows="1" 
-            placeholder="Ask anything about Ayush patents, NBA approvals, licensing, or global export..." 
+            placeholder="Ask about Ayurveda IP, regulatory pathways, ABS, GI, or formulation classification..." 
             onkeydown="handleKeyDown(event)"
           ></textarea>
 
@@ -726,308 +801,79 @@
     </div>
   </aside>
 
-  <!-- 6-CATEGORY FORMULATION CLASSIFIER & STATUTORY TRIAGE MODAL (GAP 2) -->
+  <!-- 6-CATEGORY FORMULATION CLASSIFICATION WIZARD MODAL (Simple 4-Block Matching Reference) -->
   <div class="modal-backdrop hidden" id="scannerModal">
-    <div class="modal-sheet-card modal-classifier-card">
+    <div class="modal-sheet-card modal-classifier-card" style="max-width: 760px; width: 92%;">
       <!-- Modal Header -->
-      <div class="modal-sheet-header classifier-modal-header">
-        <div class="classifier-header-left">
-          <div class="classifier-badge-pill">GAP 2 • STATUTORY TRIAGE</div>
-          <div class="sheet-title">⚖️ 6-Category Formulation Classifier &amp; IP/ABS Wizard</div>
-          <div class="sheet-desc-sub">
-            Because Ayurvedic intellectual property is inseparable from drug regulation, determine your formulation's exact statutory category (D&amp;C Act 1940/2015, FSSAI 2022, CDSCO) to establish patentability barriers and mandatory ABS liabilities.
-          </div>
+      <div class="modal-sheet-header">
+        <div class="wizard-header-title">
+          <span class="wizard-icon">🧪</span>
+          <span class="wizard-title-text">Formulation Classification Wizard</span>
         </div>
         <button class="modal-close-btn" onclick="closeScannerModal()" title="Close Wizard">✕</button>
       </div>
 
-      <!-- Navigation Tabs -->
-      <div class="classifier-nav-tabs">
-        <button type="button" class="classifier-tab-btn active" id="tabClassifierWizard" onclick="switchClassifierTab('wizard')">
-          <span>✍️</span> Formulation Query &amp; Classifier
-        </button>
-        <button type="button" class="classifier-tab-btn" id="tabClassifierExplorer" onclick="switchClassifierTab('explorer')">
-          <span>📚</span> 6-Category Statutory Explorer
-        </button>
-        <button type="button" class="classifier-tab-btn" id="tabClassifierMatrix" onclick="switchClassifierTab('matrix')">
-          <span>📊</span> Comparative IP &amp; ABS Matrix
-        </button>
-      </div>
+      <div class="modal-sheet-body" style="padding: 16px 20px;">
+        <div class="wizard-instruction">
+          Answer a few questions to identify the likely regulatory pathway.
+        </div>
 
-      <div class="modal-sheet-body classifier-modal-body">
-        <!-- ================= TAB 1: USER FORMULATION QUERY & CLASSIFIER ================= -->
-        <div class="classifier-tab-pane active" id="paneClassifierWizard">
-          <!-- Formulation Query Section -->
-          <div class="classifier-query-section">
-            <div class="classifier-query-header">
-              <label for="classifierQueryInput" class="classifier-query-label">
-                ✍️ Write or Paste Your Formulation Query / Product Brief:
-              </label>
-              <span class="classifier-query-hint">Auto-deconstructs into 1 of 6 Statutory Categories</span>
-            </div>
+        <div class="wizard-blocks-grid">
+          <!-- Block 1: Product description -->
+          <div class="wizard-field-group">
+            <label class="wizard-field-label" for="modalWizardProdDesc">Product description:</label>
+            <textarea 
+              id="modalWizardProdDesc" 
+              class="wizard-textarea" 
+              rows="3" 
+              placeholder="e.g., Herbal tablet for joint pain with 5 classical ingredients..."></textarea>
+          </div>
 
-            <!-- Quick 1-Click Preset Formulation Chips -->
-            <div class="formulation-preset-chips">
-              <span class="preset-label">Quick Presets:</span>
-              <button type="button" class="preset-chip" onclick="applyFormulationPreset('phytopharm')">
-                🌿 Phytopharmaceutical (≥4 Markers)
-              </button>
-              <button type="button" class="preset-chip" onclick="applyFormulationPreset('proprietary')">
-                🧪 Proprietary Nanocarrier Balm
-              </button>
-              <button type="button" class="preset-chip" onclick="applyFormulationPreset('classical')">
-                📜 Classical Chyawanprash
-              </button>
-              <button type="button" class="preset-chip" onclick="applyFormulationPreset('new_drug')">
-                🔬 New Drug with Synthetic Polymer
-              </button>
-              <button type="button" class="preset-chip" onclick="applyFormulationPreset('aahar')">
-                🥗 Ayurveda-Aahar Granules
-              </button>
-              <button type="button" class="preset-chip" onclick="applyFormulationPreset('cosmetic')">
-                💄 Kumkumadi Facial Serum
-              </button>
-            </div>
-
-            <div class="classifier-textarea-wrap">
-              <textarea 
-                id="classifierQueryInput" 
-                class="classifier-textarea" 
-                rows="3" 
-                placeholder="Describe your botanical formulation, ingredients (e.g. Curcumin, Withania somnifera), processing technology (supercritical CO2, liposomal nanocarrier &lt; 150nm, classical kwath), route of administration, and intended therapeutic or health claims..."
-                oninput="onClassifierQueryInput()"></textarea>
-            </div>
-
-            <div class="classifier-action-bar">
-              <button type="button" class="btn-classify-run" onclick="runFormulationClassification()">
-                <span>⚡</span> Classify Formulation &amp; Analyze Regulatory Posture
-              </button>
-              <button type="button" class="btn-classify-clear" onclick="clearClassifierInput()">
-                Clear
-              </button>
+          <!-- Block 2: Intended use -->
+          <div class="wizard-field-group">
+            <label class="wizard-field-label" for="modalWizardIntendedUse">Intended use:</label>
+            <div class="wizard-select-wrap">
+              <select id="modalWizardIntendedUse" class="wizard-select">
+                <option value="" disabled selected>Choose an option</option>
+                <option value="therapeutic">Therapeutic / Medicinal treatment</option>
+                <option value="dietary">Dietary supplement / Ayurveda Aahar</option>
+                <option value="cosmetic">Cosmetic / skin glow / beautification</option>
+                <option value="phytopharm">Standardized purified fraction (Phytopharmaceutical)</option>
+                <option value="new_drug">Novel indication / synthetic excipients (New Drug)</option>
+              </select>
             </div>
           </div>
 
-          <!-- Live Statutory Triage Diagnosis Card -->
-          <div class="live-triage-card" id="liveTriageCard">
-            <!-- Dynamically injected via updateClassifierDiagnosis() in app.js -->
+          <!-- Block 3: Ingredients (optional) -->
+          <div class="wizard-field-group">
+            <label class="wizard-field-label" for="modalWizardIngredients">Ingredients (optional):</label>
+            <textarea 
+              id="modalWizardIngredients" 
+              class="wizard-textarea" 
+              rows="3" 
+              placeholder="Ashwagandha, Guggulu, Shallaki, etc."></textarea>
+          </div>
+
+          <!-- Block 4: Classical text reference (optional) -->
+          <div class="wizard-field-group">
+            <label class="wizard-field-label" for="modalWizardClassicalRef">Classical text reference (optional):</label>
+            <textarea 
+              id="modalWizardClassicalRef" 
+              class="wizard-textarea" 
+              rows="3" 
+              placeholder="e.g., Charaka Samhita Chikitsasthana 5/24"></textarea>
           </div>
         </div>
 
-        <!-- ================= TAB 2: 6-CATEGORY STATUTORY EXPLORER ================= -->
-        <div class="classifier-tab-pane hidden" id="paneClassifierExplorer">
-          <div class="explorer-intro-box">
-            <div class="explorer-intro-title">🏛️ The 6 Official Regulatory Categories for Ayush Products</div>
-            <p class="explorer-intro-desc">Because patentability in India is directly constrained by Section 3(p) Traditional Knowledge and Section 3(e) Admixture rules, each category enforces a drastically different licensing pathway, IP defensibility score, and NBA Access &amp; Benefit Sharing (ABS) liability.</p>
-          </div>
-
-          <!-- Category Selector Chips -->
-          <div class="category-selector-chips" id="categoryExplorerChips">
-            <button class="cat-chip-btn active" onclick="showCategoryDetail('classical')">1. Classical / Generic</button>
-            <button class="cat-chip-btn" onclick="showCategoryDetail('proprietary')">2. Patent/Proprietary</button>
-            <button class="cat-chip-btn" onclick="showCategoryDetail('new_drug')">3. New / Non-Classical Drug</button>
-            <button class="cat-chip-btn" onclick="showCategoryDetail('phytopharm')">4. Phytopharmaceutical</button>
-            <button class="cat-chip-btn" onclick="showCategoryDetail('aahar')">5. Ayurveda-Aahar</button>
-            <button class="cat-chip-btn" onclick="showCategoryDetail('cosmetic')">6. Ayush Cosmetic</button>
-          </div>
-
-          <!-- Category Detailed View Container -->
-          <div class="category-detail-card" id="categoryDetailView">
-            <!-- Dynamically populated via renderCategoryDetail() in app.js -->
-          </div>
-        </div>
-
-        <!-- ================= TAB 3: COMPARATIVE IP & ABS MATRIX ================= -->
-        <div class="classifier-tab-pane hidden" id="paneClassifierMatrix">
-          <div class="matrix-table-wrapper">
-            <table class="classifier-matrix-table">
-              <thead>
-                <tr>
-                  <th style="min-width: 170px;">Category &amp; Act</th>
-                  <th style="min-width: 150px;">Regulatory Authority &amp; License</th>
-                  <th style="min-width: 170px;">Clinical / Safety Mandate</th>
-                  <th style="min-width: 180px;">IP Barrier (§3(p) / §3(e))</th>
-                  <th style="min-width: 140px;">Patentability Defensibility</th>
-                  <th style="min-width: 180px;">ABS &amp; NBA Form 3 Posture</th>
-                </tr>
-              </thead>
-              <tbody id="classifierMatrixBody">
-                <tr>
-                  <td>
-                    <div class="matrix-cat-title">📜 1. Classical / Generic ASU Medicine</div>
-                    <div class="matrix-cat-sub">D&amp;C Act 1940, Section 3(a) &amp; Rule 158-B(1)</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-sala">SALA (State Ayush)</span>
-                    <div class="matrix-meta">Form 25-D (ASU Drug License)</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-green">Zero Clinical Trials</span>
-                    <div class="matrix-meta">Textual citation from 54 First-Schedule books constitutes legal evidence. Pharmacopoeial testing only.</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-red">Absolute §3(p) TKDL Bar</span>
-                    <div class="matrix-meta">Identical to prior art. Direct rejection under Section 3(p) as traditional knowledge.</div>
-                  </td>
-                  <td>
-                    <div class="matrix-score score-low">10% - 15%</div>
-                    <div class="matrix-progress"><div class="matrix-bar" style="width: 12%; background: #EF4444;"></div></div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-green">Domestic Exemption</span>
-                    <div class="matrix-meta">Indian entities exempt from prior approval for codified traditional knowledge; foreign entities require Section 3 NBA approval.</div>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td>
-                    <div class="matrix-cat-title">🧪 2. Patent or Proprietary ASU Medicine</div>
-                    <div class="matrix-cat-sub">D&amp;C Act 1940, Section 3(h) &amp; Rule 158-B(2)</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-sala">SALA (State Ayush)</span>
-                    <div class="matrix-meta">Form 25-D (Proprietary ASU) / Form 24-D</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-yellow">Pilot Safety &amp; Efficacy</span>
-                    <div class="matrix-meta">30 human subjects pilot clinical study, 14-day acute oral toxicity in 2 animal species, 6-month accelerated stability.</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-red">High §3(e) &amp; §3(p) Risk</span>
-                    <div class="matrix-meta">Scrutinized as mere aggregation of known herbal properties. Overcome ONLY via synergism (CI &lt; 0.8) or nanocarrier delivery.</div>
-                  </td>
-                  <td>
-                    <div class="matrix-score score-med">45% - 65%</div>
-                    <div class="matrix-progress"><div class="matrix-bar" style="width: 55%; background: #F59E0B;"></div></div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-red">Mandatory NBA Form 3</span>
-                    <div class="matrix-meta">Section 6(1) mandatory prior approval before patent grant. 0.1%-0.5% ex-factory royalty sharing upon commercialization.</div>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td>
-                    <div class="matrix-cat-title">🔬 3. New / Non-Classical Drug</div>
-                    <div class="matrix-cat-sub">CDSCO NDCT Rules 2019 &amp; D&amp;C Act 1940</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-cdsco">Central CDSCO / DCGI</span>
-                    <div class="matrix-meta">Form CT-20 / New Drug Permission (Central)</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-red">Pivotal Phase I-III Trials</span>
-                    <div class="matrix-meta">Rigorous pre-clinical toxicity (GLP), Phase I safety, Phase II dose-ranging, and Phase III multi-centric efficacy trials.</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-green">Low §3(p) Bar / §3(d) Test</span>
-                    <div class="matrix-meta">Since excipients/indications are unprecedented, Section 3(p) is bypassed. Must prove enhanced efficacy under Section 3(d).</div>
-                  </td>
-                  <td>
-                    <div class="matrix-score score-high">75% - 85%</div>
-                    <div class="matrix-progress"><div class="matrix-bar" style="width: 80%; background: #10B981;"></div></div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-red">Mandatory NBA Form 3</span>
-                    <div class="matrix-meta">Biological resources from India utilized in non-classical composition trigger full Section 6 prior approval and SBB intimation.</div>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td>
-                    <div class="matrix-cat-title">🌿 4. Phytopharmaceutical Drug</div>
-                    <div class="matrix-cat-sub">D&amp;C Amendment Rules 2015 (Rule 122-E, G.S.R. 918(E))</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-cdsco">Central DCGI (CDSCO)</span>
-                    <div class="matrix-meta">Form CT-20 (Phytopharmaceutical Approval)</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-red">IND Regulatory Dossier</span>
-                    <div class="matrix-meta">≥ 4 chemical biomarkers, 28/90-day sub-chronic toxicology, safety pharmacology, and full Phase I–III GCP clinical trials.</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-green">High / Genuine Patentability</span>
-                    <div class="matrix-meta">Purified fractions with defined chemical fingerprints are NOT traditional knowledge. Strong composition &amp; process patent potential.</div>
-                  </td>
-                  <td>
-                    <div class="matrix-score score-high">88% - 94.5%</div>
-                    <div class="matrix-progress"><div class="matrix-bar" style="width: 92%; background: #059669;"></div></div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-red">High Commercial ABS</span>
-                    <div class="matrix-meta">Section 6(1) approval mandatory before patent grant. High commercial value triggers active ABS monitoring by National Biodiversity Authority.</div>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td>
-                    <div class="matrix-cat-title">🥗 5. Ayurveda-Aahar / Nutraceutical</div>
-                    <div class="matrix-cat-sub">FSSAI Regulations 2022 &amp; FSS Act 2006</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-fssai">FSSAI Authority</span>
-                    <div class="matrix-meta">FSSAI Central/State Food License</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-green">Nutritional Safety Standards</span>
-                    <div class="matrix-meta">No clinical trials, but strict conformity to Schedule A botanicals, daily RDA limits, and STRICT prohibition on disease cure claims.</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-red">High §3(p) &amp; §3(e) Bar</span>
-                    <div class="matrix-meta">Food recipes and traditional nourishment lack inventive step. Patentable only for novel shelf-life or microencapsulation processing methods.</div>
-                  </td>
-                  <td>
-                    <div class="matrix-score score-low">20% - 30%</div>
-                    <div class="matrix-progress"><div class="matrix-bar" style="width: 25%; background: #EF4444;"></div></div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-yellow">Section 40 NTC Exemptions</span>
-                    <div class="matrix-meta">Exempt from ABS if traded as Normally Traded Commodities (NTC list of 421 notified items) solely for consumption.</div>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td>
-                    <div class="matrix-cat-title">💄 6. Ayush Cosmetic</div>
-                    <div class="matrix-cat-sub">D&amp;C Act 1940 &amp; Rules 1945 (Schedule S / Rule 158-B)</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-sala">State Licensing Authority</span>
-                    <div class="matrix-meta">Form 32 / Form 32-A Cosmetic License</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-green">20-Human Patch Safety Test</span>
-                    <div class="matrix-meta">Dermatological patch test on 20 human volunteers, heavy metal limits (&lt;10ppm Pb, &lt;1ppm As), microbial purity test.</div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-yellow">Moderate §3(p) Bar</span>
-                    <div class="matrix-meta">Herbal cosmetics face TKDL objections unless formulated with novel skin-penetrating lipid vesicles or synergistic active cosmeceuticals.</div>
-                  </td>
-                  <td>
-                    <div class="matrix-score score-med">30% - 50%</div>
-                    <div class="matrix-progress"><div class="matrix-bar" style="width: 40%; background: #F59E0B;"></div></div>
-                  </td>
-                  <td>
-                    <span class="status-badge badge-yellow">SBB Intimation / ABS</span>
-                    <div class="matrix-meta">Section 7 intimation to State Biodiversity Board required for commercial utilization; Indian entities exempt under revised 2023 provisions.</div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="modal-sheet-footer classifier-modal-footer">
-        <button class="btn-cancel" onclick="closeScannerModal()">Close</button>
-        <button class="btn-secondary-action" onclick="copyClassifierDossier()" title="Copy Structured Assessment">
-          📋 Copy Classification Dossier
+        <!-- Classify Action Button -->
+        <button type="button" class="btn-wizard-classify" id="btnModalWizardClassify" onclick="executeModalClassification()">
+          <span>🎯</span> Classify
         </button>
-        <button class="btn-confirm" onclick="applyClassifierToChat()" title="Feed classification and regulatory pathway into the active inquiry">
-          🚀 Apply Classification to Inquiry
-        </button>
+
+        <!-- Classification Result Output -->
+        <div class="wizard-result-box hidden" id="modalWizardResultBox">
+          <!-- Dynamically populated via executeModalClassification() -->
+        </div>
       </div>
     </div>
   </div>
@@ -1858,6 +1704,6 @@
     </div>
   </div>
 
-  <script src="/static/js/app.js?v=36"></script>
+  <script src="/static/js/app.js?v=37"></script>
 </body>
 </html>

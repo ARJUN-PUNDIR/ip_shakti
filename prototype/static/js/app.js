@@ -1683,458 +1683,244 @@ const CLASSIFIER_CATEGORIES_DATA = {
   }
 };
 
-const CLASSIFIER_PRESETS = {
-  phytopharm: {
-    key: "phytopharm",
-    title: "Phytopharmaceutical Fraction",
-    text: "Standardized purified fraction of Withania somnifera and Curcuma longa containing >=4 biomarker compounds (Withaferin-A 2.5%, Withanolide-D 1.8%, Curcumin 95%, Demethoxycurcumin) via column chromatography and HPLC fingerprinted. Formulated into oral gelatin capsules for clinical adjuvant management of moderate rheumatoid arthritis under D&C 2015 Rule 122-E."
-  },
-  proprietary: {
-    key: "proprietary",
-    title: "Proprietary Nanocarrier Balm",
-    text: "Proprietary topical pain-relief analgesic balm containing Curcuma longa, Gaultheria procumbens (Wintergreen oil), and Boswellia serrata encapsulated within a phospholipid nanocarrier (liposomal particle size < 150nm) to enhance transdermal skin penetration depth and bypass Section 3(e) mere admixture objections."
-  },
-  classical: {
-    key: "classical",
-    title: "Classical Chyawanprash",
-    text: "Classical Ayurvedic formulation prepared strictly in accordance with the authoritative recipe of Charaka Samhita (Chikitsa Sthana, Chapter 1), using Emblica officinalis (Amla fruit pulp), Desmodium gangeticum, Piper longum, honey, and sesame oil via standard Kwatha and Avaleha pharmaceutical operations without proprietary excipients."
-  },
-  new_drug: {
-    key: "new_drug",
-    title: "New Drug with Synthetic Polymer",
-    text: "Botanical extracts of Commiphora mukul combined with synthetic poly-lactic-co-glycolic acid (PLGA) nanoparticles and synthetic permeation enhancers administered via sublingual mucosal spray for systemic coronary lipid regulation, claiming a novel therapeutic indication not documented in First Schedule texts."
-  },
-  aahar: {
-    key: "aahar",
-    title: "Ayurveda-Aahar Granules",
-    text: "Ayurveda Aahar oral health granule formulated from roasted Hordeum vulgare (Yava), Glycyrrhiza glabra (Yashtimadhu), and Zingiber officinale (Shunthi) using traditional culinary processing (Sanskara) as a dietary nutritional supplement compliant with FSSAI (Ayurveda Aahar) Regulations 2022 without disease prevention claims."
-  },
-  cosmetic: {
-    key: "cosmetic",
-    title: "Kumkumadi Facial Serum",
-    text: "Ayurvedic cosmeceutical facial radiance serum comprising Crocus sativus (Kesar), Santalum album (Chandan), and Rubia cordifolia (Manjistha) cold-pressed seed oil for topical external application to improve skin radiance, complexion tone, and cosmetic glow, without therapeutic curative claims."
-  }
+// ===================================================
+// FORMULATION CLASSIFICATION WIZARD (Matching User Reference)
+// ===================================================
+
+let currentWizardState = {
+  productDesc: "",
+  intendedUse: "",
+  ingredients: "",
+  classicalRef: ""
 };
 
-let currentClassifierText = CLASSIFIER_PRESETS.proprietary.text;
-let currentActiveCategoryKey = "proprietary";
-let activeClassifierTab = "wizard";
-
-function openScannerModal() {
-  const modal = document.getElementById("scannerModal");
-  if (modal) {
-    modal.classList.remove("hidden");
-    const textarea = document.getElementById("classifierQueryInput");
-    if (textarea && (!textarea.value || textarea.value.trim() === "")) {
-      applyFormulationPreset("proprietary");
-    } else {
-      runFormulationClassification();
-    }
-    renderCategoryDetail(currentActiveCategoryKey || "proprietary");
+function toggleFormulationWizard(forceState) {
+  const card = document.getElementById("formulationWizardCard");
+  if (!card) return;
+  if (typeof forceState === "boolean") {
+    card.classList.toggle("collapsed", !forceState);
+  } else {
+    card.classList.toggle("collapsed");
   }
 }
 
-function closeScannerModal() {
-  const modal = document.getElementById("scannerModal");
-  if (modal) modal.classList.add("hidden");
-}
+function evaluateSimpleFormulation({ productDesc, intendedUse, ingredients, classicalRef }) {
+  const pLower = (productDesc || "").toLowerCase().trim();
+  const iLower = (ingredients || "").toLowerCase().trim();
+  const cLower = (classicalRef || "").toLowerCase().trim();
+  const allText = `${pLower} ${iLower} ${cLower}`;
 
-function switchClassifierTab(tabName) {
-  activeClassifierTab = tabName;
-  const tabs = ["wizard", "explorer", "matrix"];
-  tabs.forEach(t => {
-    const btn = document.getElementById(`tabClassifier${t.charAt(0).toUpperCase() + t.slice(1)}`);
-    const pane = document.getElementById(`paneClassifier${t.charAt(0).toUpperCase() + t.slice(1)}`);
-    if (btn) btn.classList.toggle("active", t === tabName);
-    if (pane) {
-      if (t === tabName) {
-        pane.classList.remove("hidden");
-        pane.classList.add("active");
-      } else {
-        pane.classList.add("hidden");
-        pane.classList.remove("active");
-      }
-    }
-  });
-
-  if (tabName === "explorer") {
-    showCategoryDetail(currentActiveCategoryKey || "proprietary");
-  }
-}
-
-function applyFormulationPreset(key) {
-  const preset = CLASSIFIER_PRESETS[key];
-  if (!preset) return;
-  const textarea = document.getElementById("classifierQueryInput");
-  if (textarea) {
-    textarea.value = preset.text;
-  }
-  // Highlight active preset chip
-  const chips = document.querySelectorAll(".preset-chip");
-  chips.forEach(chip => {
-    const onclickStr = chip.getAttribute("onclick") || "";
-    chip.classList.toggle("active", onclickStr.includes(`'${key}'`));
-  });
-
-  runFormulationClassification();
-}
-
-function clearClassifierInput() {
-  const textarea = document.getElementById("classifierQueryInput");
-  if (textarea) {
-    textarea.value = "";
-    textarea.focus();
-  }
-  const chips = document.querySelectorAll(".preset-chip");
-  chips.forEach(c => c.classList.remove("active"));
-  renderClassifierEmptyState();
-}
-
-let classifierInputDebounce = null;
-function onClassifierQueryInput() {
-  const chips = document.querySelectorAll(".preset-chip");
-  chips.forEach(c => c.classList.remove("active"));
-  
-  if (classifierInputDebounce) clearTimeout(classifierInputDebounce);
-  classifierInputDebounce = setTimeout(() => {
-    runFormulationClassification();
-  }, 350);
-}
-
-function classifyUserFormulation(text) {
-  const lower = (text || "").toLowerCase().trim();
-  
-  // 1. Detect Ingredients / Botanicals
-  const possibleBotanicals = [
-    { name: "Curcuma longa (Curcumin)", match: ["curcuma", "curcumin", "turmeric", "haldi"] },
-    { name: "Withania somnifera (Ashwagandha)", match: ["withania", "ashwagandha", "withaferin"] },
-    { name: "Boswellia serrata (Shallaki)", match: ["boswellia", "shallaki", "boswellic"] },
-    { name: "Gaultheria procumbens (Wintergreen)", match: ["gaultheria", "wintergreen", "methyl salicylate"] },
-    { name: "Commiphora mukul (Guggulu)", match: ["commiphora", "guggul", "guggulu"] },
-    { name: "Emblica officinalis (Amla)", match: ["emblica", "amla", "amalaki"] },
-    { name: "Piper nigrum / longum (Pippali/Black Pepper)", match: ["piper", "pippali", "piperine", "maricha"] },
-    { name: "Crocus sativus (Kesar/Saffron)", match: ["crocus", "kesar", "saffron"] },
-    { name: "Santalum album (Chandan/Sandalwood)", match: ["santalum", "chandan", "sandalwood"] },
-    { name: "Hordeum vulgare (Yava/Barley)", match: ["hordeum", "yava", "barley"] }
-  ];
-  const detectedBotanicals = possibleBotanicals
-    .filter(b => b.match.some(m => lower.includes(m)))
-    .map(b => b.name);
-
-  // 2. Detect Technology & Delivery System
-  let detectedTech = "Standard Classical Aqueous/Decoction";
-  if (lower.includes("phytopharm") || lower.includes("purified fraction") || lower.includes("column chrom") || lower.includes("hplc") || lower.includes("biomarker")) {
-    detectedTech = "Standardized Purified Fraction (>=4 Biomarkers, HPLC-fingerprinted)";
-  } else if (lower.includes("synthetic") || lower.includes("plga") || lower.includes("polymer") || lower.includes("peg")) {
-    detectedTech = "Synthetic Excipient / Polymeric Matrix (CDSCO NDCT Review)";
-  } else if (lower.includes("liposom") || lower.includes("nanocarrier") || lower.includes("nanoparticle") || lower.includes("phospholipid")) {
-    detectedTech = "Phospholipid Nanocarrier / Liposomal Encapsulation (<150nm)";
-  } else if (lower.includes("culinary") || lower.includes("sanskara") || lower.includes("granule") || lower.includes("roasted")) {
-    detectedTech = "Traditional Sanskara / Culinary Food Processing";
-  } else if (lower.includes("serum") || lower.includes("oil") || lower.includes("cream") || lower.includes("cold-pressed")) {
-    detectedTech = "Cold-pressed Botanical Lipid / Cosmeceutical Emulsion";
-  }
-
-  // 3. Detect Claims & Target
-  let detectedClaims = "General Wellness & Health Maintenance";
-  if (lower.includes("pain") || lower.includes("analgesic") || lower.includes("arthritis") || lower.includes("rheumatoid") || lower.includes("anti-inflammatory")) {
-    detectedClaims = "Therapeutic Pain / Joint Anti-Inflammatory Efficacy";
-  } else if (lower.includes("coronary") || lower.includes("lipid") || lower.includes("cardiac") || lower.includes("hypertension") || lower.includes("diabetes")) {
-    detectedClaims = "Specific Clinical Disease Indication (Non-classical)";
-  } else if (lower.includes("glow") || lower.includes("radiance") || lower.includes("complexion") || lower.includes("skin") || lower.includes("beautif")) {
-    detectedClaims = "Cosmetic Cleansing / Dermal Beautification (No disease claims)";
-  } else if (lower.includes("dietary") || lower.includes("nutritional") || lower.includes("supplement") || lower.includes("food")) {
-    detectedClaims = "Nutritional Supplementation (FSSAI Ayurveda Aahar)";
-  }
-
-  // 4. Statutory Category Evaluation
   let catKey = "classical";
+
+  // 1. Phytopharmaceutical (D&C Rule 122-E)
   if (
-    lower.includes("phytopharm") ||
-    lower.includes("rule 122-e") ||
-    lower.includes("122e") ||
-    lower.includes("purified fraction") ||
-    lower.includes("biomarker") ||
-    lower.includes("fraction of") ||
-    lower.includes("g.s.r. 918")
+    intendedUse === "phytopharm" ||
+    allText.includes("phytopharm") ||
+    allText.includes("rule 122-e") ||
+    allText.includes("122e") ||
+    allText.includes("purified fraction") ||
+    allText.includes("biomarker")
   ) {
     catKey = "phytopharm";
-  } else if (
-    lower.includes("synthetic") ||
-    lower.includes("plga") ||
-    lower.includes("copolymer") ||
-    lower.includes("new drug") ||
-    lower.includes("cdsco ndct") ||
-    lower.includes("sublingual mucosal spray") ||
-    lower.includes("parenteral")
+  }
+  // 2. New / Non-Classical Drug (CDSCO NDCT Rules 2019)
+  else if (
+    intendedUse === "new_drug" ||
+    allText.includes("synthetic") ||
+    allText.includes("plga") ||
+    allText.includes("polymer") ||
+    allText.includes("new drug") ||
+    allText.includes("mucosal spray")
   ) {
     catKey = "new_drug";
-  } else if (
-    lower.includes("aahar") ||
-    lower.includes("fssai") ||
-    lower.includes("dietary") ||
-    lower.includes("nutraceutical") ||
-    lower.includes("yava") ||
-    (lower.includes("supplement") && !lower.includes("pain"))
+  }
+  // 3. Ayurveda-Aahar (FSSAI 2022)
+  else if (
+    intendedUse === "dietary" ||
+    allText.includes("aahar") ||
+    allText.includes("fssai") ||
+    allText.includes("dietary") ||
+    allText.includes("nutraceutical") ||
+    allText.includes("supplement")
   ) {
     catKey = "aahar";
-  } else if (
-    lower.includes("cosmetic") ||
-    lower.includes("facial") ||
-    lower.includes("serum") ||
-    lower.includes("skin glow") ||
-    lower.includes("radiance") ||
-    lower.includes("complexion") ||
-    lower.includes("beautif") ||
-    lower.includes("kumkumadi")
+  }
+  // 4. Ayush Cosmetic (Rule 158-B)
+  else if (
+    intendedUse === "cosmetic" ||
+    allText.includes("cosmetic") ||
+    allText.includes("skin glow") ||
+    allText.includes("facial") ||
+    allText.includes("radiance") ||
+    allText.includes("beautif")
   ) {
     catKey = "cosmetic";
-  } else if (
-    lower.includes("proprietary") ||
-    lower.includes("liposom") ||
-    lower.includes("nanocarrier") ||
-    lower.includes("nanoparticle") ||
-    lower.includes("phospholipid") ||
-    lower.includes("balm") ||
-    lower.includes("synerg") ||
-    lower.includes("bioavailability") ||
-    lower.includes("altered ratio") ||
-    lower.includes("transdermal")
-  ) {
-    catKey = "proprietary";
-  } else if (
-    lower.includes("charaka") ||
-    lower.includes("sushruta") ||
-    lower.includes("vagbhata") ||
-    lower.includes("first schedule") ||
-    lower.includes("classical") ||
-    lower.includes("chyawanprash") ||
-    lower.includes("kwath") ||
-    lower.includes("asava") ||
-    lower.includes("bhasma")
+  }
+  // 5. Classical Generic ASU (First Schedule)
+  else if (
+    cLower.length > 3 ||
+    allText.includes("charaka") ||
+    allText.includes("sushruta") ||
+    allText.includes("vagbhata") ||
+    allText.includes("first schedule") ||
+    allText.includes("generic asu")
   ) {
     catKey = "classical";
+  }
+  // 6. Patent or Proprietary ASU Medicine (Rule 158-B Category II)
+  else if (
+    intendedUse === "therapeutic" ||
+    allText.includes("tablet") ||
+    allText.includes("balm") ||
+    allText.includes("joint pain") ||
+    allText.includes("proprietary") ||
+    allText.includes("liposom") ||
+    allText.includes("nanocarrier") ||
+    allText.includes("synerg")
+  ) {
+    catKey = "proprietary";
   } else {
-    // Fallback heuristic: check if any advanced tech or non-classical claim was detected
-    if (detectedTech.includes("Nanocarrier") || detectedClaims.includes("Pain")) {
-      catKey = "proprietary";
-    } else {
-      catKey = "classical";
-    }
+    catKey = cLower ? "classical" : "proprietary";
   }
 
   const catData = CLASSIFIER_CATEGORIES_DATA[catKey] || CLASSIFIER_CATEGORIES_DATA.classical;
-
-  return {
-    catKey,
-    catData,
-    detectedBotanicals,
-    detectedTech,
-    detectedClaims,
-    rawText: text
-  };
+  return { catKey, catData };
 }
 
-function runFormulationClassification() {
-  const textarea = document.getElementById("classifierQueryInput");
-  const text = textarea ? textarea.value.trim() : "";
-  
-  if (!text) {
-    renderClassifierEmptyState();
+function executeSimpleClassification() {
+  const pInput = document.getElementById("wizardProdDesc");
+  const uInput = document.getElementById("wizardIntendedUse");
+  const iInput = document.getElementById("wizardIngredients");
+  const cInput = document.getElementById("wizardClassicalRef");
+  const resultBox = document.getElementById("wizardResultBox");
+
+  const data = {
+    productDesc: pInput ? pInput.value.trim() : "",
+    intendedUse: uInput ? uInput.value : "",
+    ingredients: iInput ? iInput.value.trim() : "",
+    classicalRef: cInput ? cInput.value.trim() : ""
+  };
+
+  currentWizardState = data;
+
+  if (!data.productDesc && !data.ingredients && !data.classicalRef && !data.intendedUse) {
+    if (resultBox) {
+      resultBox.classList.remove("hidden");
+      resultBox.innerHTML = `
+        <div style="font-size: 12px; color: #DC2626; font-weight: 600; text-align: center; padding: 6px;">
+          ⚠️ Please fill in at least the product description or ingredients to classify.
+        </div>
+      `;
+    }
     return;
   }
 
-  currentClassifierText = text;
-  const triage = classifyUserFormulation(text);
-  currentActiveCategoryKey = triage.catKey;
-  renderClassifierDiagnosis(triage);
+  const { catData } = evaluateSimpleFormulation(data);
+  renderWizardResultContent(resultBox, catData, data);
 }
 
-function renderClassifierEmptyState() {
-  const card = document.getElementById("liveTriageCard");
-  if (!card) return;
-  card.innerHTML = `
-    <div style="text-align: center; padding: 24px 16px; color: #64748B;">
-      <div style="font-size: 32px; margin-bottom: 8px;">✍️</div>
-      <div style="font-size: 14px; font-weight: 700; color: #334155; margin-bottom: 4px;">Write or select a formulation above to classify</div>
-      <div style="font-size: 12px;">Type your herbal ingredients, processing technology, and claims, or click one of the quick presets.</div>
-    </div>
-  `;
+function executeModalClassification() {
+  const pInput = document.getElementById("modalWizardProdDesc");
+  const uInput = document.getElementById("modalWizardIntendedUse");
+  const iInput = document.getElementById("modalWizardIngredients");
+  const cInput = document.getElementById("modalWizardClassicalRef");
+  const resultBox = document.getElementById("modalWizardResultBox");
+
+  const data = {
+    productDesc: pInput ? pInput.value.trim() : "",
+    intendedUse: uInput ? uInput.value : "",
+    ingredients: iInput ? iInput.value.trim() : "",
+    classicalRef: cInput ? cInput.value.trim() : ""
+  };
+
+  currentWizardState = data;
+
+  if (!data.productDesc && !data.ingredients && !data.classicalRef && !data.intendedUse) {
+    if (resultBox) {
+      resultBox.classList.remove("hidden");
+      resultBox.innerHTML = `
+        <div style="font-size: 12px; color: #DC2626; font-weight: 600; text-align: center; padding: 6px;">
+          ⚠️ Please fill in at least the product description or ingredients to classify.
+        </div>
+      `;
+    }
+    return;
+  }
+
+  const { catData } = evaluateSimpleFormulation(data);
+  renderWizardResultContent(resultBox, catData, data);
 }
 
-function renderClassifierDiagnosis(triage) {
-  const card = document.getElementById("liveTriageCard");
-  if (!card) return;
+function renderWizardResultContent(container, cat, data) {
+  if (!container) return;
+  container.classList.remove("hidden");
 
-  const cat = triage.catData;
   const scoreNum = Math.min(94.5, cat.patentDefensibility);
 
-  const botanicalsHtml = triage.detectedBotanicals.length > 0
-    ? triage.detectedBotanicals.map(b => `<span class="deconstruct-pill">🌿 ${escapeHtml(b)}</span>`).join(" ")
-    : `<span class="deconstruct-pill" style="color: #64748B;">Custom Botanical Formulation</span>`;
-
-  card.innerHTML = `
-    <!-- Top Row: Category Identity & Regulatory Authority Badge -->
-    <div class="triage-header-row">
-      <div class="triage-cat-badge">
+  container.innerHTML = `
+    <div class="wrb-header">
+      <div class="wrb-cat-badge">
         <span>${cat.icon}</span>
-        <span>Determined Statutory Category ${cat.num}: ${cat.title}</span>
+        <span>Likely Regulatory Pathway: Category ${cat.num} — ${cat.title}</span>
       </div>
       <span class="status-badge ${cat.badgeClass}">${cat.badgeText}</span>
     </div>
 
-    <!-- Deconstructed Formulation Parameters -->
-    <div class="deconstruct-meta-grid">
-      <div class="deconstruct-item" style="grid-column: 1 / -1;">
-        <span class="deconstruct-label">Extracted Bioresources / Botanicals:</span>
-        <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 3px;">
-          ${botanicalsHtml}
-        </div>
+    <div class="wrb-grid-meta">
+      <div class="wrb-meta-item">
+        <span class="wrb-meta-label">Governing Statutory Framework</span>
+        <span class="wrb-meta-val">${cat.act}</span>
       </div>
-      <div class="deconstruct-item">
-        <span class="deconstruct-label">Delivery / Processing Technology:</span>
-        <span class="deconstruct-val">${escapeHtml(triage.detectedTech)}</span>
+      <div class="wrb-meta-item">
+        <span class="wrb-meta-label">Licensing Authority &amp; Form</span>
+        <span class="wrb-meta-val">${cat.authority} • <strong>${cat.licenseForm}</strong></span>
       </div>
-      <div class="deconstruct-item">
-        <span class="deconstruct-label">Intended Claims &amp; Target:</span>
-        <span class="deconstruct-val">${escapeHtml(triage.detectedClaims)}</span>
+      <div class="wrb-meta-item" style="grid-column: 1 / -1;">
+        <span class="wrb-meta-label">Clinical / Safety Requirement</span>
+        <span class="wrb-meta-val">${cat.clinicalTrials}</span>
       </div>
-    </div>
-
-    <!-- Statutory & Regulatory Pathway Details -->
-    <div class="triage-grid-meta">
-      <div class="triage-meta-block">
-        <span class="triage-meta-label">Governing Act &amp; Section</span>
-        <span class="triage-meta-val">${cat.act}</span>
+      <div class="wrb-meta-item">
+        <span class="wrb-meta-label">Patentability Defensibility Potential</span>
+        <span class="wrb-meta-val" style="color: ${cat.scoreColor}; font-weight: 800;">${scoreNum.toFixed(1)}% (Capped at ≤ 94.5%)</span>
       </div>
-      <div class="triage-meta-block">
-        <span class="triage-meta-label">Licensing Authority &amp; Form</span>
-        <span class="triage-meta-val">${cat.authority} • <strong>${cat.licenseForm}</strong></span>
-      </div>
-      <div class="triage-meta-block" style="grid-column: 1 / -1;">
-        <span class="triage-meta-label">Mandated Clinical / Safety Testing</span>
-        <span class="triage-meta-val">${cat.clinicalTrials}</span>
+      <div class="wrb-meta-item">
+        <span class="wrb-meta-label">Biological Diversity Act (ABS)</span>
+        <span class="wrb-meta-val">${cat.absPosture}</span>
       </div>
     </div>
 
-    <!-- Patentability Defensibility Meter (Capped at 94.5%) -->
-    <div class="triage-score-box">
-      <div class="score-header-flex">
-        <span>🛡️ Patentability Defensibility Potential:</span>
-        <span class="score-num-pill" style="color: ${cat.scoreColor}; background: rgba(0,0,0,0.04);">${scoreNum.toFixed(1)}%</span>
-      </div>
-      <div class="score-track-container" role="progressbar" aria-valuenow="${scoreNum}" aria-valuemin="0" aria-valuemax="100">
-        <div class="score-fill-bar" style="width: ${scoreNum}%; background: ${cat.scoreColor};"></div>
-      </div>
-      <div style="font-size: 11px; color: #475569; line-height: 1.35;">
-        <strong>Section 3(p) &amp; 3(e) Assessment:</strong> ${cat.ipBarrier}
-      </div>
+    <div class="wrb-alert wrb-alert-ip">
+      <strong>Section 3(p) / 3(e) Patent Analysis:</strong> ${cat.ipBarrier}
     </div>
 
-    <!-- Biological Diversity Act (ABS) Posture -->
-    <div class="triage-alert-box alert-abs">
-      <span>🌳</span>
-      <div><strong>Biological Diversity Act (ABS) Posture:</strong> ${cat.absPosture}</div>
+    <div class="wrb-alert wrb-alert-rec">
+      <strong>Regulatory &amp; IP Strategy:</strong> ${cat.workaround}
     </div>
 
-    <!-- Workaround Strategy Recommendation -->
-    <div class="triage-alert-box alert-workaround">
-      <span>💡</span>
-      <div><strong>Strategic Filing Recommendation:</strong> ${cat.workaround}</div>
-    </div>
-
-    <!-- Action Buttons -->
-    <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; flex-wrap: wrap;">
-      <button type="button" class="btn-classify-clear" onclick="copyClassifierDossier()" style="display: inline-flex; align-items: center; gap: 4px;">
-        <span>📋</span> Copy Classification Dossier
+    <div class="wrb-actions">
+      <button type="button" class="btn-wrb-copy" onclick="copySimpleWizardDossier('${cat.key}')">
+        <span>📋</span> Copy Dossier
       </button>
-      <button type="button" class="btn-classify-run" onclick="applyClassifierToChat()" style="background: #047857;">
-        <span>💬</span> Launch Deep Analysis in Chatbot ->
+      <button type="button" class="btn-wrb-chat" onclick="sendSimpleWizardToChat('${cat.key}')">
+        <span>💬</span> Ask Follow-up in Chatbot →
       </button>
     </div>
   `;
 }
 
-function showCategoryDetail(catKey) {
-  const chips = document.querySelectorAll(".cat-chip-btn");
-  chips.forEach(c => {
-    const isTarget = c.getAttribute("onclick")?.includes(catKey);
-    c.classList.toggle("active", isTarget);
-  });
-  renderCategoryDetail(catKey);
-}
-
-function renderCategoryDetail(catKey) {
+function sendSimpleWizardToChat(catKey) {
   const cat = CLASSIFIER_CATEGORIES_DATA[catKey] || CLASSIFIER_CATEGORIES_DATA.classical;
-  const view = document.getElementById("categoryDetailView");
-  if (!view) return;
+  const pDesc = currentWizardState.productDesc || "Botanical Formulation";
+  const pIng = currentWizardState.ingredients ? `Ingredients: ${currentWizardState.ingredients}` : "";
+  const pRef = currentWizardState.classicalRef ? `Classical Reference: ${currentWizardState.classicalRef}` : "";
 
-  const scoreNum = Math.min(94.5, cat.patentDefensibility);
-
-  view.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 10px;">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 24px;">${cat.icon}</span>
-        <div>
-          <h3 style="margin: 0; font-size: 15px; font-weight: 800; color: #0F172A;">${cat.num}. ${cat.title}</h3>
-          <span style="font-size: 11px; color: #64748B;">${cat.act}</span>
-        </div>
-      </div>
-      <span class="status-badge ${cat.badgeClass}">${cat.badgeText}</span>
-    </div>
-
-    <div class="triage-grid-meta" style="margin-top: 6px;">
-      <div class="triage-meta-block">
-        <span class="triage-meta-label">Licensing Authority</span>
-        <span class="triage-meta-val">${cat.authority}</span>
-      </div>
-      <div class="triage-meta-block">
-        <span class="triage-meta-label">Application Form</span>
-        <span class="triage-meta-val">${cat.licenseForm}</span>
-      </div>
-      <div class="triage-meta-block" style="grid-column: 1 / -1;">
-        <span class="triage-meta-label">Clinical Trial &amp; Safety Mandate</span>
-        <span class="triage-meta-val">${cat.clinicalTrials}</span>
-      </div>
-      <div class="triage-meta-block" style="grid-column: 1 / -1;">
-        <span class="triage-meta-label">Indian Patent Law Bar (Section 3(p) / 3(e) / 3(d))</span>
-        <span class="triage-meta-val">${cat.ipBarrier}</span>
-      </div>
-      <div class="triage-meta-block" style="grid-column: 1 / -1;">
-        <span class="triage-meta-label">Biological Diversity Act (ABS &amp; NBA Form 3)</span>
-        <span class="triage-meta-val">${cat.absPosture}</span>
-      </div>
-    </div>
-
-    <div class="triage-score-box">
-      <div class="score-header-flex">
-        <span>Defensibility Score Benchmark:</span>
-        <span class="score-num-pill" style="color: ${cat.scoreColor};">${scoreNum.toFixed(1)}%</span>
-      </div>
-      <div class="score-track-container">
-        <div class="score-fill-bar" style="width: ${scoreNum}%; background: ${cat.scoreColor};"></div>
-      </div>
-    </div>
-
-    <div class="triage-alert-box alert-workaround">
-      <span>💡</span>
-      <div><strong>Statutory Workaround &amp; Optimization:</strong> ${cat.workaround}</div>
-    </div>
-  `;
-}
-
-function applyClassifierToChat() {
-  const textarea = document.getElementById("classifierQueryInput");
-  const userText = textarea ? textarea.value.trim() : (currentClassifierText || "");
-  const triage = classifyUserFormulation(userText);
-  const cat = triage.catData;
   closeScannerModal();
 
-  const query = `Evaluate statutory patentability and regulatory approval pathway for this Ayush formulation:
-"${userText}"
-Classified Category: Category ${cat.num}: ${cat.title} (${cat.act})
-Regulatory Authority: ${cat.authority} (Application Form: ${cat.licenseForm})
-Assess Section 3(p) / 3(e) patent hurdles, Biological Diversity Act ABS approval, and required clinical safety validation.`;
+  const query = `Evaluate statutory patentability and regulatory approval pathway for this formulation:
+- Product Description: "${pDesc}"
+${pIng ? `- ${pIng}\n` : ""}${pRef ? `- ${pRef}\n` : ""}Determined Category: Category ${cat.num} — ${cat.title} (${cat.act})
+Regulatory Authority: ${cat.authority} (${cat.licenseForm})
+Assess Section 3(p) Traditional Knowledge bar, Section 3(e) synergistic data requirements, and NBA ABS approval.`;
 
   const hero = document.getElementById("emptyStateHero");
   if (hero) hero.style.display = "none";
@@ -2145,36 +1931,31 @@ Assess Section 3(p) / 3(e) patent hurdles, Biological Diversity Act ABS approval
   runQueryPipeline(query, null);
 }
 
-function copyClassifierDossier() {
-  const textarea = document.getElementById("classifierQueryInput");
-  const userText = textarea ? textarea.value.trim() : (currentClassifierText || "");
-  const triage = classifyUserFormulation(userText);
-  const cat = triage.catData;
+function copySimpleWizardDossier(catKey) {
+  const cat = CLASSIFIER_CATEGORIES_DATA[catKey] || CLASSIFIER_CATEGORIES_DATA.classical;
   const scoreNum = Math.min(94.5, cat.patentDefensibility);
 
   const dossier = `# AYUSH FORMULATION STATUTORY CLASSIFICATION DOSSIER
-**Formulation Input:** ${userText}
-**Determined Category ${cat.num}:** ${cat.title}
+**Product Description:** ${currentWizardState.productDesc || "Not specified"}
+**Intended Use:** ${currentWizardState.intendedUse || "Not specified"}
+**Ingredients:** ${currentWizardState.ingredients || "Not specified"}
+**Classical Text Reference:** ${currentWizardState.classicalRef || "None"}
+
+**Likely Regulatory Pathway:** Category ${cat.num}: ${cat.title}
 **Governing Act:** ${cat.act}
-**Regulating Authority:** ${cat.authority}
-**Mandatory License Form:** ${cat.licenseForm}
+**Licensing Authority:** ${cat.authority} (Form: ${cat.licenseForm})
 
-## 1. Deconstructed Parameters
-- **Detected Botanicals:** ${triage.detectedBotanicals.join(", ") || "Herbal mixture"}
-- **Delivery & Processing Technology:** ${triage.detectedTech}
-- **Intended Claims:** ${triage.detectedClaims}
-
-## 2. Clinical Safety & Efficacy Mandate
+## 1. Clinical / Safety Testing Mandate
 ${cat.clinicalTrials}
 
-## 3. Intellectual Property (IP) Posture
+## 2. Intellectual Property (IP) Posture
 - **Section 3(p) / 3(e) Bar:** ${cat.ipBarrier}
-- **Patentability Defensibility Score:** ${scoreNum.toFixed(1)}%
+- **Patentability Defensibility Score:** ${scoreNum.toFixed(1)}% (Capped at ≤ 94.5%)
 
-## 4. Biological Diversity Act (ABS) Posture
+## 3. Biological Diversity Act (ABS) Posture
 ${cat.absPosture}
 
-## 5. Strategic Filing Recommendation
+## 4. Strategic Filing Recommendation
 ${cat.workaround}
 
 *Generated by IP-SAKTI Sahayak — Ministry of Ayush*`;
@@ -2186,13 +1967,35 @@ ${cat.workaround}
   });
 }
 
+function openScannerModal() {
+  const modal = document.getElementById("scannerModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    // Pre-populate if empty
+    const pInput = document.getElementById("modalWizardProdDesc");
+    if (pInput && !pInput.value) {
+      pInput.value = "Herbal topical pain-relief analgesic balm with phospholipid nanocarrier";
+      const uInput = document.getElementById("modalWizardIntendedUse");
+      if (uInput) uInput.value = "therapeutic";
+      const iInput = document.getElementById("modalWizardIngredients");
+      if (iInput) iInput.value = "Curcuma longa, Gaultheria procumbens, Boswellia serrata";
+      executeModalClassification();
+    }
+  }
+}
+
+function closeScannerModal() {
+  const modal = document.getElementById("scannerModal");
+  if (modal) modal.classList.add("hidden");
+}
+
 // Backward-compatible scanner aliases
 async function calcScannerScore() {
-  runFormulationClassification();
+  executeSimpleClassification();
 }
 
 function applyScannerToChat() {
-  applyClassifierToChat();
+  sendSimpleWizardToChat("proprietary");
 }
 
 // ===================================================
