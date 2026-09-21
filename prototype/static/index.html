@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=37">
+  <link rel="stylesheet" href="/static/css/style.css?v=39">
 </head>
 <body>
 
@@ -43,10 +43,9 @@
           <span class="sidebar-pro-pill" id="sidebarJurisdictionBadge" style="font-size: 10px; font-weight: 700; background: #059669; color: #FFF; padding: 1px 6px; border-radius: 4px; margin-left: auto;">NATIONAL</span>
         </div>
 
-        <div class="thread-item" onclick="openScannerModal()" title="Interactive 6-Category Formulation Classifier & Statutory Wizard">
+        <div class="thread-item" onclick="openScannerModal()" title="Formulation Classification Wizard">
           <span class="thread-icon">⚖️</span>
-          <div class="thread-text" id="sidebarItemScannerText">6-Category Formulation Classifier</div>
-          <span class="sidebar-pro-pill" style="font-size: 10px; font-weight: 700; background: #0284C7; color: #FFF; padding: 1px 6px; border-radius: 4px; margin-left: auto;">GAP 2</span>
+          <div class="thread-text" id="sidebarItemScannerText">Formulation Classification Wizard</div>
         </div>
 
         <div class="thread-item" onclick="openArchitectureModal()">
@@ -331,81 +330,6 @@
       <div class="chat-input-dock">
         <!-- Attached Documents Tray -->
         <div class="attached-docs-tray hidden" id="attachedDocsTray"></div>
-
-        <!-- FORMULATION CLASSIFICATION WIZARD (Matching User Reference) -->
-        <div class="formulation-wizard-card" id="formulationWizardCard">
-          <div class="wizard-toggle-header" onclick="toggleFormulationWizard()" title="Click to collapse/expand wizard">
-            <div class="wizard-header-title">
-              <span class="wizard-chevron" id="wizardChevron">⌵</span>
-              <span class="wizard-icon">🧪</span>
-              <span class="wizard-title-text">Formulation Classification Wizard</span>
-            </div>
-            <span class="wizard-header-badge">Statutory Pathway Triage</span>
-          </div>
-
-          <div class="wizard-collapsible-content" id="wizardCollapsibleContent">
-            <div class="wizard-instruction">
-              Answer a few questions to identify the likely regulatory pathway.
-            </div>
-
-            <div class="wizard-blocks-grid">
-              <!-- Block 1: Product description -->
-              <div class="wizard-field-group">
-                <label class="wizard-field-label" for="wizardProdDesc">Product description:</label>
-                <textarea 
-                  id="wizardProdDesc" 
-                  class="wizard-textarea" 
-                  rows="3" 
-                  placeholder="e.g., Herbal tablet for joint pain with 5 classical ingredients..."></textarea>
-              </div>
-
-              <!-- Block 2: Intended use -->
-              <div class="wizard-field-group">
-                <label class="wizard-field-label" for="wizardIntendedUse">Intended use:</label>
-                <div class="wizard-select-wrap">
-                  <select id="wizardIntendedUse" class="wizard-select">
-                    <option value="" disabled selected>Choose an option</option>
-                    <option value="therapeutic">Therapeutic / Medicinal treatment</option>
-                    <option value="dietary">Dietary supplement / Ayurveda Aahar</option>
-                    <option value="cosmetic">Cosmetic / skin glow / beautification</option>
-                    <option value="phytopharm">Standardized purified fraction (Phytopharmaceutical)</option>
-                    <option value="new_drug">Novel indication / synthetic excipients (New Drug)</option>
-                  </select>
-                </div>
-              </div>
-
-              <!-- Block 3: Ingredients (optional) -->
-              <div class="wizard-field-group">
-                <label class="wizard-field-label" for="wizardIngredients">Ingredients (optional):</label>
-                <textarea 
-                  id="wizardIngredients" 
-                  class="wizard-textarea" 
-                  rows="3" 
-                  placeholder="Ashwagandha, Guggulu, Shallaki, etc."></textarea>
-              </div>
-
-              <!-- Block 4: Classical text reference (optional) -->
-              <div class="wizard-field-group">
-                <label class="wizard-field-label" for="wizardClassicalRef">Classical text reference (optional):</label>
-                <textarea 
-                  id="wizardClassicalRef" 
-                  class="wizard-textarea" 
-                  rows="3" 
-                  placeholder="e.g., Charaka Samhita Chikitsasthana 5/24"></textarea>
-              </div>
-            </div>
-
-            <!-- Classify Action Button -->
-            <button type="button" class="btn-wizard-classify" id="btnWizardClassify" onclick="executeSimpleClassification()">
-              <span>🎯</span> Classify
-            </button>
-
-            <!-- Classification Result Output -->
-            <div class="wizard-result-box hidden" id="wizardResultBox">
-              <!-- Dynamically populated via executeSimpleClassification() -->
-            </div>
-          </div>
-        </div>
 
         <div class="input-pill-wrapper">
 
@@ -869,11 +793,6 @@
         <button type="button" class="btn-wizard-classify" id="btnModalWizardClassify" onclick="executeModalClassification()">
           <span>🎯</span> Classify
         </button>
-
-        <!-- Classification Result Output -->
-        <div class="wizard-result-box hidden" id="modalWizardResultBox">
-          <!-- Dynamically populated via executeModalClassification() -->
-        </div>
       </div>
     </div>
   </div>
@@ -1704,6 +1623,6 @@
     </div>
   </div>
 
-  <script src="/static/js/app.js?v=37"></script>
+  <script src="/static/js/app.js?v=39"></script>
 </body>
 </html>

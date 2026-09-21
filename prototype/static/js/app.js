@@ -1824,31 +1824,39 @@ function executeModalClassification() {
   const uInput = document.getElementById("modalWizardIntendedUse");
   const iInput = document.getElementById("modalWizardIngredients");
   const cInput = document.getElementById("modalWizardClassicalRef");
-  const resultBox = document.getElementById("modalWizardResultBox");
 
-  const data = {
-    productDesc: pInput ? pInput.value.trim() : "",
-    intendedUse: uInput ? uInput.value : "",
-    ingredients: iInput ? iInput.value.trim() : "",
-    classicalRef: cInput ? cInput.value.trim() : ""
-  };
+  const productDesc = pInput ? pInput.value.trim() : "";
+  const intendedUse = uInput ? uInput.value : "";
+  const ingredients = iInput ? iInput.value.trim() : "";
+  const classicalRef = cInput ? cInput.value.trim() : "";
 
-  currentWizardState = data;
-
-  if (!data.productDesc && !data.ingredients && !data.classicalRef && !data.intendedUse) {
-    if (resultBox) {
-      resultBox.classList.remove("hidden");
-      resultBox.innerHTML = `
-        <div style="font-size: 12px; color: #DC2626; font-weight: 600; text-align: center; padding: 6px;">
-          ⚠️ Please fill in at least the product description or ingredients to classify.
-        </div>
-      `;
-    }
+  if (!productDesc && !ingredients && !classicalRef && !intendedUse) {
+    alert("Please enter at least a product description or ingredients to classify.");
     return;
   }
 
-  const { catData } = evaluateSimpleFormulation(data);
-  renderWizardResultContent(resultBox, catData, data);
+  // Close modal immediately so no content shows below button
+  closeScannerModal();
+
+  // Find readable label for intended use
+  let useLabel = intendedUse;
+  if (uInput && uInput.selectedIndex >= 0) {
+    const selOpt = uInput.options[uInput.selectedIndex];
+    if (selOpt && selOpt.value) useLabel = selOpt.text;
+  }
+
+  const query = `Evaluate statutory patentability and regulatory approval pathway for this formulation:
+- Product Description: "${productDesc || "User formulation"}"
+${useLabel ? `- Intended Use: ${useLabel}\n` : ""}${ingredients ? `- Ingredients: ${ingredients}\n` : ""}${classicalRef ? `- Classical Text Reference: ${classicalRef}\n` : ""}
+Provide exact statutory regulatory category (D&C Act 1940 / FSSAI 2022 / CDSCO NDCT), licensing authority & form, clinical safety mandate, Section 3(p) / 3(e) patentability defensibility, and Biological Diversity Act (ABS) compliance.`;
+
+  const hero = document.getElementById("emptyStateHero");
+  if (hero) hero.style.display = "none";
+
+  const promptInput = document.getElementById("userPromptInput");
+  if (promptInput) promptInput.value = query;
+
+  runQueryPipeline(query, null);
 }
 
 function renderWizardResultContent(container, cat, data) {
@@ -1971,16 +1979,6 @@ function openScannerModal() {
   const modal = document.getElementById("scannerModal");
   if (modal) {
     modal.classList.remove("hidden");
-    // Pre-populate if empty
-    const pInput = document.getElementById("modalWizardProdDesc");
-    if (pInput && !pInput.value) {
-      pInput.value = "Herbal topical pain-relief analgesic balm with phospholipid nanocarrier";
-      const uInput = document.getElementById("modalWizardIntendedUse");
-      if (uInput) uInput.value = "therapeutic";
-      const iInput = document.getElementById("modalWizardIngredients");
-      if (iInput) iInput.value = "Curcuma longa, Gaultheria procumbens, Boswellia serrata";
-      executeModalClassification();
-    }
   }
 }
 
