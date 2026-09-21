@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=35">
+  <link rel="stylesheet" href="/static/css/style.css?v=36">
 </head>
 <body>
 
@@ -139,6 +139,11 @@
         </div>
 
         <div class="header-right-group">
+          <button class="header-icon-btn jurisdiction-header-btn" id="headerJurisdictionBtn" onclick="toggleJurisdiction()" title="Switch Jurisdiction (India vs International)" style="display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; height: 32px; font-size: 12px; font-weight: 600; border-radius: 8px; border: 1px solid #CBD5E1; background: #FFFFFF; color: #0F172A; cursor: pointer; transition: all 0.18s ease;">
+            <span id="headerJurisdictionFlag">🌐</span>
+            <span id="headerJurisdictionLabel">Switch to International</span>
+          </button>
+
           <button class="header-pro-btn" id="headerProBtn" onclick="toggleTierMode()" title="Switch between Chatbot and Assist Plus">
             <span class="pro-sparkle">★</span>
             <span class="pro-label" id="headerProBtnLabel">Assist Plus</span>
@@ -739,7 +744,7 @@
       <!-- Navigation Tabs -->
       <div class="classifier-nav-tabs">
         <button type="button" class="classifier-tab-btn active" id="tabClassifierWizard" onclick="switchClassifierTab('wizard')">
-          <span>🧙‍♂️</span> Clarifying Question Wizard
+          <span>✍️</span> Formulation Query &amp; Classifier
         </button>
         <button type="button" class="classifier-tab-btn" id="tabClassifierExplorer" onclick="switchClassifierTab('explorer')">
           <span>📚</span> 6-Category Statutory Explorer
@@ -750,317 +755,57 @@
       </div>
 
       <div class="modal-sheet-body classifier-modal-body">
-        <!-- ================= TAB 1: QUESTION WIZARD ================= -->
+        <!-- ================= TAB 1: USER FORMULATION QUERY & CLASSIFIER ================= -->
         <div class="classifier-tab-pane active" id="paneClassifierWizard">
-          <!-- Wizard Step Indicator -->
-          <div class="wizard-stepper-bar">
-            <div class="wizard-step-item active" id="wizStepItem1" onclick="jumpToWizardStep(1)">
-              <div class="step-num-circle">1</div>
-              <div class="step-label-wrap">
-                <span class="step-label-title">Source Text</span>
-                <span class="step-label-sub">Composition Basis</span>
-              </div>
-            </div>
-            <div class="wizard-step-divider"></div>
-            <div class="wizard-step-item" id="wizStepItem2" onclick="jumpToWizardStep(2)">
-              <div class="step-num-circle">2</div>
-              <div class="step-label-wrap">
-                <span class="step-label-title">Extraction</span>
-                <span class="step-label-sub">Fractionation Level</span>
-              </div>
-            </div>
-            <div class="wizard-step-divider"></div>
-            <div class="wizard-step-item" id="wizStepItem3" onclick="jumpToWizardStep(3)">
-              <div class="step-num-circle">3</div>
-              <div class="step-label-wrap">
-                <span class="step-label-title">Product Claims</span>
-                <span class="step-label-sub">Therapeutic vs Food</span>
-              </div>
-            </div>
-            <div class="wizard-step-divider"></div>
-            <div class="wizard-step-item" id="wizStepItem4" onclick="jumpToWizardStep(4)">
-              <div class="step-num-circle">4</div>
-              <div class="step-label-wrap">
-                <span class="step-label-title">Administration</span>
-                <span class="step-label-sub">Ingestible / Topical</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Wizard Question Containers -->
-          <div class="wizard-question-viewport">
-            <!-- Question 1 -->
-            <div class="wizard-question-pane active" id="wizardQPane1">
-              <div class="wizard-question-header">
-                <span class="q-badge">Question 1 of 4</span>
-                <h4 class="q-title">What is the authoritative textual &amp; composition source of your formulation?</h4>
-                <p class="q-desc">How are the botanical ingredients and ratios grounded in official statutory frameworks?</p>
-              </div>
-              <div class="wizard-options-grid">
-                <div class="wizard-option-card active" data-q="1" data-val="classical_text" onclick="selectWizardOption(1, 'classical_text', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">Strict First-Schedule Classical Recipe</span>
-                      <span class="opt-tag tag-classical">§3(a) First Schedule</span>
-                    </div>
-                    <p class="opt-desc">Manufactured strictly according to formulae prescribed in the 54 authoritative Ayurvedic/Siddha/Unani books (Charaka, Sushruta, Sahasrayogam, etc.).</p>
-                  </div>
-                </div>
-
-                <div class="wizard-option-card" data-q="1" data-val="proprietary_ratio" onclick="selectWizardOption(1, 'proprietary_ratio', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">First-Schedule Ingredients in Altered Ratio / Form</span>
-                      <span class="opt-tag tag-proprietary">Rule 158-B Cat II</span>
-                    </div>
-                    <p class="opt-desc">All ingredients are documented in First-Schedule books, but the ratio is altered, novel blend formulated, or converted into modern ASU dosage form.</p>
-                  </div>
-                </div>
-
-                <div class="wizard-option-card" data-q="1" data-val="phytopharm_fraction" onclick="selectWizardOption(1, 'phytopharm_fraction', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">Purified Fraction with ≥ 4 Standardized Biomarkers</span>
-                      <span class="opt-tag tag-phytopharm">D&amp;C Rule 122-E (2015)</span>
-                    </div>
-                    <p class="opt-desc">Fractionated botanical extract containing at least 4 quantified chemical biomarkers, characterized by chromatographic fingerprinting.</p>
-                  </div>
-                </div>
-
-                <div class="wizard-option-card" data-q="1" data-val="new_drug_composition" onclick="selectWizardOption(1, 'new_drug_composition', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">New / Non-Classical ASU Drug (Synthetic Excipients / Novel Active)</span>
-                      <span class="opt-tag tag-newdrug">CDSCO NDCT 2019</span>
-                    </div>
-                    <p class="opt-desc">Introduces synthetic pharmaceutical excipients, unlisted botanicals, or unprecedented delivery matrix requiring central CDSCO approval.</p>
-                  </div>
-                </div>
-
-                <div class="wizard-option-card" data-q="1" data-val="aahar_recipe" onclick="selectWizardOption(1, 'aahar_recipe', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">Ayurvedic Dietary / Food Preparation</span>
-                      <span class="opt-tag tag-aahar">FSSAI Aahara 2022</span>
-                    </div>
-                    <p class="opt-desc">Prepared according to authoritative Ayurvedic culinary texts or botanicals listed in Schedule A of FSSAI Ayurveda Aahara Regulations.</p>
-                  </div>
-                </div>
-
-                <div class="wizard-option-card" data-q="1" data-val="cosmetic_recipe" onclick="selectWizardOption(1, 'cosmetic_recipe', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">Topical Herbal Beautification Recipe</span>
-                      <span class="opt-tag tag-cosmetic">Rule 158-B Topical</span>
-                    </div>
-                    <p class="opt-desc">Formulated solely for cleansing, conditioning, hair nourishment, or skin beautification without claiming disease cure or healing.</p>
-                  </div>
-                </div>
-              </div>
+          <!-- Formulation Query Section -->
+          <div class="classifier-query-section">
+            <div class="classifier-query-header">
+              <label for="classifierQueryInput" class="classifier-query-label">
+                ✍️ Write or Paste Your Formulation Query / Product Brief:
+              </label>
+              <span class="classifier-query-hint">Auto-deconstructs into 1 of 6 Statutory Categories</span>
             </div>
 
-            <!-- Question 2 -->
-            <div class="wizard-question-pane hidden" id="wizardQPane2">
-              <div class="wizard-question-header">
-                <span class="q-badge">Question 2 of 4</span>
-                <h4 class="q-title">What is the extraction, fractionation &amp; technological processing level?</h4>
-                <p class="q-desc">The degree of processing fundamentally alters Section 3(p) TKDL bars and Section 3(e) admixture scrutiny.</p>
-              </div>
-              <div class="wizard-options-grid">
-                <div class="wizard-option-card active" data-q="2" data-val="classical_aqueous" onclick="selectWizardOption(2, 'classical_aqueous', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">Traditional Aqueous / Decoction / Oil / Bhasma Processing</span>
-                      <span class="opt-tag tag-classical">Classical Metallurgy &amp; Kashaya</span>
-                    </div>
-                    <p class="opt-desc">Kwatha (boiling), Asava/Arishta fermentation, Taila paka, or classical Shodhana and Marana incineration.</p>
-                  </div>
-                </div>
-
-                <div class="wizard-option-card" data-q="2" data-val="standardized_solvent" onclick="selectWizardOption(2, 'standardized_solvent', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">Hydroalcoholic / Solvent Whole-Spectrum Extract</span>
-                      <span class="opt-tag tag-proprietary">Crude Phyto-Extract</span>
-                    </div>
-                    <p class="opt-desc">Standard solvent extraction (aqueous, hydroalcoholic) retaining the natural botanical spectrum without isolating fractions.</p>
-                  </div>
-                </div>
-
-                <div class="wizard-option-card" data-q="2" data-val="purified_fraction_chrom" onclick="selectWizardOption(2, 'purified_fraction_chrom', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">Chromatographically Purified Fraction (≥ 4 Biomarkers)</span>
-                      <span class="opt-tag tag-phytopharm">Rule 122-E Fraction</span>
-                    </div>
-                    <p class="opt-desc">Multi-step chromatography / resin separation yielding purified fraction with quantitative markers (e.g., HPLC fingerprint).</p>
-                  </div>
-                </div>
-
-                <div class="wizard-option-card" data-q="2" data-val="advanced_nanocarrier" onclick="selectWizardOption(2, 'advanced_nanocarrier', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">Advanced Nanocarrier / Phospholipid Liposome (&lt; 150nm)</span>
-                      <span class="opt-tag tag-newdrug">Novel Drug Delivery</span>
-                    </div>
-                    <p class="opt-desc">Engineered delivery system (liposomes, phytosomes, solid lipid nanoparticles) proving enhanced pharmacokinetic bioavailability.</p>
-                  </div>
-                </div>
-
-                <div class="wizard-option-card" data-q="2" data-val="food_processing" onclick="selectWizardOption(2, 'food_processing', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">Standard Food Processing / Edible Blending</span>
-                      <span class="opt-tag tag-aahar">FSSAI Edible Standard</span>
-                    </div>
-                    <p class="opt-desc">Mechanical grinding, baking, infusion, edible syrup, or powder mix complying with FSSAI hygiene standards.</p>
-                  </div>
-                </div>
-              </div>
+            <!-- Quick 1-Click Preset Formulation Chips -->
+            <div class="formulation-preset-chips">
+              <span class="preset-label">Quick Presets:</span>
+              <button type="button" class="preset-chip" onclick="applyFormulationPreset('phytopharm')">
+                🌿 Phytopharmaceutical (≥4 Markers)
+              </button>
+              <button type="button" class="preset-chip" onclick="applyFormulationPreset('proprietary')">
+                🧪 Proprietary Nanocarrier Balm
+              </button>
+              <button type="button" class="preset-chip" onclick="applyFormulationPreset('classical')">
+                📜 Classical Chyawanprash
+              </button>
+              <button type="button" class="preset-chip" onclick="applyFormulationPreset('new_drug')">
+                🔬 New Drug with Synthetic Polymer
+              </button>
+              <button type="button" class="preset-chip" onclick="applyFormulationPreset('aahar')">
+                🥗 Ayurveda-Aahar Granules
+              </button>
+              <button type="button" class="preset-chip" onclick="applyFormulationPreset('cosmetic')">
+                💄 Kumkumadi Facial Serum
+              </button>
             </div>
 
-            <!-- Question 3 -->
-            <div class="wizard-question-pane hidden" id="wizardQPane3">
-              <div class="wizard-question-header">
-                <span class="q-badge">Question 3 of 4</span>
-                <h4 class="q-title">What therapeutic, health, or label claims are being made?</h4>
-                <p class="q-desc">Statutory drug law strictly differentiates disease cure claims from dietary nutrition and cosmetic beautification.</p>
-              </div>
-              <div class="wizard-options-grid">
-                <div class="wizard-option-card active" data-q="3" data-val="classical_indication" onclick="selectWizardOption(3, 'classical_indication', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">Classical Indication Cited Verbatim from Pharmacopoeia</span>
-                      <span class="opt-tag tag-classical">Pharmacopoeial Monograph</span>
-                    </div>
-                    <p class="opt-desc">Claims documented verbatim in authoritative text / API (e.g. Amavata, Sandhivata, Kasa, Prameha) with zero modern claims.</p>
-                  </div>
-                </div>
-
-                <div class="wizard-option-card" data-q="3" data-val="proprietary_clinical_claim" onclick="selectWizardOption(3, 'proprietary_clinical_claim', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">Symptomatic Relief Validated by Pilot Human Trial (30 Subjects)</span>
-                      <span class="opt-tag tag-proprietary">Rule 158-B Pilot Study</span>
-                    </div>
-                    <p class="opt-desc">Therapeutic symptom alleviation backed by 30-human clinical pilot evidence and 14-day acute toxicity animal data.</p>
-                  </div>
-                </div>
-
-                <div class="wizard-option-card" data-q="3" data-val="ind_pharma_claim" onclick="selectWizardOption(3, 'ind_pharma_claim', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">Targeted Clinical Efficacy Validated by Phase I-III Trials</span>
-                      <span class="opt-tag tag-phytopharm">IND Clinical Dossier</span>
-                    </div>
-                    <p class="opt-desc">Evidence of specific clinical efficacy derived from GCP multi-center Phase I-III clinical trials under CDSCO approval.</p>
-                  </div>
-                </div>
-
-                <div class="wizard-option-card" data-q="3" data-val="new_disease_claim" onclick="selectWizardOption(3, 'new_disease_claim', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">Novel Clinical Indication Not Found in Classical Texts</span>
-                      <span class="opt-tag tag-newdrug">Central CDSCO NDCT</span>
-                    </div>
-                    <p class="opt-desc">Claiming a completely novel clinical indication or complex pathological cure requiring Central New Drug approval.</p>
-                  </div>
-                </div>
-
-                <div class="wizard-option-card" data-q="3" data-val="wellness_dietary" onclick="selectWizardOption(3, 'wellness_dietary', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">General Wellness / Rasayana (Strictly NO Disease Claims)</span>
-                      <span class="opt-tag tag-aahar">FSSAI Wellness Only</span>
-                    </div>
-                    <p class="opt-desc">General physiological maintenance and dietary support. Zero claims to cure, prevent, or treat specific human illnesses.</p>
-                  </div>
-                </div>
-
-                <div class="wizard-option-card" data-q="3" data-val="beautification_claim" onclick="selectWizardOption(3, 'beautification_claim', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">External Beautification, Skin Radiance &amp; Conditioning</span>
-                      <span class="opt-tag tag-cosmetic">Cosmetic Only</span>
-                    </div>
-                    <p class="opt-desc">Promoting external attractiveness, grooming, and cleansing with no medicinal or therapeutic treatment claims.</p>
-                  </div>
-                </div>
-              </div>
+            <div class="classifier-textarea-wrap">
+              <textarea 
+                id="classifierQueryInput" 
+                class="classifier-textarea" 
+                rows="3" 
+                placeholder="Describe your botanical formulation, ingredients (e.g. Curcumin, Withania somnifera), processing technology (supercritical CO2, liposomal nanocarrier &lt; 150nm, classical kwath), route of administration, and intended therapeutic or health claims..."
+                oninput="onClassifierQueryInput()"></textarea>
             </div>
 
-            <!-- Question 4 -->
-            <div class="wizard-question-pane hidden" id="wizardQPane4">
-              <div class="wizard-question-header">
-                <span class="q-badge">Question 4 of 4</span>
-                <h4 class="q-title">What is the intended route &amp; form of administration?</h4>
-                <p class="q-desc">Route of delivery governs licensing forms (Form 24-D vs Form 25-D vs Form 32) and human patch test mandates.</p>
-              </div>
-              <div class="wizard-options-grid">
-                <div class="wizard-option-card active" data-q="4" data-val="oral_ingestible" onclick="selectWizardOption(4, 'oral_ingestible', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">Oral / Ingestible (Internal Consumption)</span>
-                      <span class="opt-tag tag-classical">Internal Dosage</span>
-                    </div>
-                    <p class="opt-desc">Tablets, capsules, syrups, churna powder, kwatha decoctions, or fermented asava/arishta for internal ingestion.</p>
-                  </div>
-                </div>
-
-                <div class="wizard-option-card" data-q="4" data-val="topical_external" onclick="selectWizardOption(4, 'topical_external', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">Topical / External (Skin, Scalp, Nails)</span>
-                      <span class="opt-tag tag-cosmetic">External Application</span>
-                    </div>
-                    <p class="opt-desc">Taila oils, lepa pastes, creams, balms, lotions, liniments applied directly to skin, joints, scalp, or hair.</p>
-                  </div>
-                </div>
-
-                <div class="wizard-option-card" data-q="4" data-val="mucosal_parenteral" onclick="selectWizardOption(4, 'mucosal_parenteral', this)">
-                  <div class="opt-radio-circle"><div class="opt-radio-dot"></div></div>
-                  <div class="opt-content">
-                    <div class="opt-header">
-                      <span class="opt-title">Mucosal / Nasal / Inhalation / Novel Route</span>
-                      <span class="opt-tag tag-newdrug">Novel Route</span>
-                    </div>
-                    <p class="opt-desc">Nasya nasal drops, inhalers, nebulized extracts, or buccal transmucosal patches.</p>
-                  </div>
-                </div>
-              </div>
+            <div class="classifier-action-bar">
+              <button type="button" class="btn-classify-run" onclick="runFormulationClassification()">
+                <span>⚡</span> Classify Formulation &amp; Analyze Regulatory Posture
+              </button>
+              <button type="button" class="btn-classify-clear" onclick="clearClassifierInput()">
+                Clear
+              </button>
             </div>
-          </div>
-
-          <!-- Wizard Step Navigation Controls -->
-          <div class="wizard-nav-controls">
-            <button type="button" class="wizard-btn-prev" id="wizardBtnPrev" onclick="navigateWizardStep(-1)" disabled>
-              ← Previous Question
-            </button>
-            <div class="wizard-step-counter" id="wizardStepCounterText">
-              Step 1 of 4: Source Text &amp; Recipe
-            </div>
-            <button type="button" class="wizard-btn-next" id="wizardBtnNext" onclick="navigateWizardStep(1)">
-              Next Question →
-            </button>
           </div>
 
           <!-- Live Statutory Triage Diagnosis Card -->
@@ -2113,6 +1858,6 @@
     </div>
   </div>
 
-  <script src="/static/js/app.js?v=35"></script>
+  <script src="/static/js/app.js?v=36"></script>
 </body>
 </html>

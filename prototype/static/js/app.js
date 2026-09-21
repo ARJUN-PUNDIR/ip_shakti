@@ -1683,22 +1683,54 @@ const CLASSIFIER_CATEGORIES_DATA = {
   }
 };
 
-let wizardAnswers = {
-  q1: "classical_text",
-  q2: "classical_aqueous",
-  q3: "classical_indication",
-  q4: "oral_ingestible"
+const CLASSIFIER_PRESETS = {
+  phytopharm: {
+    key: "phytopharm",
+    title: "Phytopharmaceutical Fraction",
+    text: "Standardized purified fraction of Withania somnifera and Curcuma longa containing >=4 biomarker compounds (Withaferin-A 2.5%, Withanolide-D 1.8%, Curcumin 95%, Demethoxycurcumin) via column chromatography and HPLC fingerprinted. Formulated into oral gelatin capsules for clinical adjuvant management of moderate rheumatoid arthritis under D&C 2015 Rule 122-E."
+  },
+  proprietary: {
+    key: "proprietary",
+    title: "Proprietary Nanocarrier Balm",
+    text: "Proprietary topical pain-relief analgesic balm containing Curcuma longa, Gaultheria procumbens (Wintergreen oil), and Boswellia serrata encapsulated within a phospholipid nanocarrier (liposomal particle size < 150nm) to enhance transdermal skin penetration depth and bypass Section 3(e) mere admixture objections."
+  },
+  classical: {
+    key: "classical",
+    title: "Classical Chyawanprash",
+    text: "Classical Ayurvedic formulation prepared strictly in accordance with the authoritative recipe of Charaka Samhita (Chikitsa Sthana, Chapter 1), using Emblica officinalis (Amla fruit pulp), Desmodium gangeticum, Piper longum, honey, and sesame oil via standard Kwatha and Avaleha pharmaceutical operations without proprietary excipients."
+  },
+  new_drug: {
+    key: "new_drug",
+    title: "New Drug with Synthetic Polymer",
+    text: "Botanical extracts of Commiphora mukul combined with synthetic poly-lactic-co-glycolic acid (PLGA) nanoparticles and synthetic permeation enhancers administered via sublingual mucosal spray for systemic coronary lipid regulation, claiming a novel therapeutic indication not documented in First Schedule texts."
+  },
+  aahar: {
+    key: "aahar",
+    title: "Ayurveda-Aahar Granules",
+    text: "Ayurveda Aahar oral health granule formulated from roasted Hordeum vulgare (Yava), Glycyrrhiza glabra (Yashtimadhu), and Zingiber officinale (Shunthi) using traditional culinary processing (Sanskara) as a dietary nutritional supplement compliant with FSSAI (Ayurveda Aahar) Regulations 2022 without disease prevention claims."
+  },
+  cosmetic: {
+    key: "cosmetic",
+    title: "Kumkumadi Facial Serum",
+    text: "Ayurvedic cosmeceutical facial radiance serum comprising Crocus sativus (Kesar), Santalum album (Chandan), and Rubia cordifolia (Manjistha) cold-pressed seed oil for topical external application to improve skin radiance, complexion tone, and cosmetic glow, without therapeutic curative claims."
+  }
 };
-let currentWizardStep = 1;
+
+let currentClassifierText = CLASSIFIER_PRESETS.proprietary.text;
+let currentActiveCategoryKey = "proprietary";
 let activeClassifierTab = "wizard";
 
 function openScannerModal() {
   const modal = document.getElementById("scannerModal");
   if (modal) {
     modal.classList.remove("hidden");
-    jumpToWizardStep(1);
-    updateClassifierDiagnosis();
-    renderCategoryDetail("classical");
+    const textarea = document.getElementById("classifierQueryInput");
+    if (textarea && (!textarea.value || textarea.value.trim() === "")) {
+      applyFormulationPreset("proprietary");
+    } else {
+      runFormulationClassification();
+    }
+    renderCategoryDetail(currentActiveCategoryKey || "proprietary");
   }
 }
 
@@ -1726,129 +1758,257 @@ function switchClassifierTab(tabName) {
   });
 
   if (tabName === "explorer") {
-    const currentCat = evaluateClassifierCategory(wizardAnswers);
-    showCategoryDetail(currentCat.key);
+    showCategoryDetail(currentActiveCategoryKey || "proprietary");
   }
 }
 
-function jumpToWizardStep(stepNum) {
-  if (stepNum < 1 || stepNum > 4) return;
-  currentWizardStep = stepNum;
-
-  for (let i = 1; i <= 4; i++) {
-    const pane = document.getElementById(`wizardQPane${i}`);
-    const item = document.getElementById(`wizStepItem${i}`);
-    if (pane) {
-      if (i === stepNum) {
-        pane.classList.remove("hidden");
-        pane.classList.add("active");
-      } else {
-        pane.classList.add("hidden");
-        pane.classList.remove("active");
-      }
-    }
-    if (item) {
-      item.classList.toggle("active", i === stepNum);
-      item.classList.toggle("completed", i < stepNum);
-    }
+function applyFormulationPreset(key) {
+  const preset = CLASSIFIER_PRESETS[key];
+  if (!preset) return;
+  const textarea = document.getElementById("classifierQueryInput");
+  if (textarea) {
+    textarea.value = preset.text;
   }
+  // Highlight active preset chip
+  const chips = document.querySelectorAll(".preset-chip");
+  chips.forEach(chip => {
+    const onclickStr = chip.getAttribute("onclick") || "";
+    chip.classList.toggle("active", onclickStr.includes(`'${key}'`));
+  });
 
-  const prevBtn = document.getElementById("wizardBtnPrev");
-  const nextBtn = document.getElementById("wizardBtnNext");
-  const counter = document.getElementById("wizardStepCounterText");
+  runFormulationClassification();
+}
 
-  if (prevBtn) prevBtn.disabled = (stepNum === 1);
-  if (nextBtn) {
-    nextBtn.innerText = (stepNum === 4) ? "Review Diagnosis 🎯" : "Next Question →";
+function clearClassifierInput() {
+  const textarea = document.getElementById("classifierQueryInput");
+  if (textarea) {
+    textarea.value = "";
+    textarea.focus();
   }
+  const chips = document.querySelectorAll(".preset-chip");
+  chips.forEach(c => c.classList.remove("active"));
+  renderClassifierEmptyState();
+}
 
-  const titles = [
-    "Step 1 of 4: Source Text & Composition",
-    "Step 2 of 4: Extraction & Fractionation Level",
-    "Step 3 of 4: Therapeutic vs Dietary Claims",
-    "Step 4 of 4: Administration & Delivery Route"
+let classifierInputDebounce = null;
+function onClassifierQueryInput() {
+  const chips = document.querySelectorAll(".preset-chip");
+  chips.forEach(c => c.classList.remove("active"));
+  
+  if (classifierInputDebounce) clearTimeout(classifierInputDebounce);
+  classifierInputDebounce = setTimeout(() => {
+    runFormulationClassification();
+  }, 350);
+}
+
+function classifyUserFormulation(text) {
+  const lower = (text || "").toLowerCase().trim();
+  
+  // 1. Detect Ingredients / Botanicals
+  const possibleBotanicals = [
+    { name: "Curcuma longa (Curcumin)", match: ["curcuma", "curcumin", "turmeric", "haldi"] },
+    { name: "Withania somnifera (Ashwagandha)", match: ["withania", "ashwagandha", "withaferin"] },
+    { name: "Boswellia serrata (Shallaki)", match: ["boswellia", "shallaki", "boswellic"] },
+    { name: "Gaultheria procumbens (Wintergreen)", match: ["gaultheria", "wintergreen", "methyl salicylate"] },
+    { name: "Commiphora mukul (Guggulu)", match: ["commiphora", "guggul", "guggulu"] },
+    { name: "Emblica officinalis (Amla)", match: ["emblica", "amla", "amalaki"] },
+    { name: "Piper nigrum / longum (Pippali/Black Pepper)", match: ["piper", "pippali", "piperine", "maricha"] },
+    { name: "Crocus sativus (Kesar/Saffron)", match: ["crocus", "kesar", "saffron"] },
+    { name: "Santalum album (Chandan/Sandalwood)", match: ["santalum", "chandan", "sandalwood"] },
+    { name: "Hordeum vulgare (Yava/Barley)", match: ["hordeum", "yava", "barley"] }
   ];
-  if (counter) counter.innerText = titles[stepNum - 1];
+  const detectedBotanicals = possibleBotanicals
+    .filter(b => b.match.some(m => lower.includes(m)))
+    .map(b => b.name);
+
+  // 2. Detect Technology & Delivery System
+  let detectedTech = "Standard Classical Aqueous/Decoction";
+  if (lower.includes("phytopharm") || lower.includes("purified fraction") || lower.includes("column chrom") || lower.includes("hplc") || lower.includes("biomarker")) {
+    detectedTech = "Standardized Purified Fraction (>=4 Biomarkers, HPLC-fingerprinted)";
+  } else if (lower.includes("synthetic") || lower.includes("plga") || lower.includes("polymer") || lower.includes("peg")) {
+    detectedTech = "Synthetic Excipient / Polymeric Matrix (CDSCO NDCT Review)";
+  } else if (lower.includes("liposom") || lower.includes("nanocarrier") || lower.includes("nanoparticle") || lower.includes("phospholipid")) {
+    detectedTech = "Phospholipid Nanocarrier / Liposomal Encapsulation (<150nm)";
+  } else if (lower.includes("culinary") || lower.includes("sanskara") || lower.includes("granule") || lower.includes("roasted")) {
+    detectedTech = "Traditional Sanskara / Culinary Food Processing";
+  } else if (lower.includes("serum") || lower.includes("oil") || lower.includes("cream") || lower.includes("cold-pressed")) {
+    detectedTech = "Cold-pressed Botanical Lipid / Cosmeceutical Emulsion";
+  }
+
+  // 3. Detect Claims & Target
+  let detectedClaims = "General Wellness & Health Maintenance";
+  if (lower.includes("pain") || lower.includes("analgesic") || lower.includes("arthritis") || lower.includes("rheumatoid") || lower.includes("anti-inflammatory")) {
+    detectedClaims = "Therapeutic Pain / Joint Anti-Inflammatory Efficacy";
+  } else if (lower.includes("coronary") || lower.includes("lipid") || lower.includes("cardiac") || lower.includes("hypertension") || lower.includes("diabetes")) {
+    detectedClaims = "Specific Clinical Disease Indication (Non-classical)";
+  } else if (lower.includes("glow") || lower.includes("radiance") || lower.includes("complexion") || lower.includes("skin") || lower.includes("beautif")) {
+    detectedClaims = "Cosmetic Cleansing / Dermal Beautification (No disease claims)";
+  } else if (lower.includes("dietary") || lower.includes("nutritional") || lower.includes("supplement") || lower.includes("food")) {
+    detectedClaims = "Nutritional Supplementation (FSSAI Ayurveda Aahar)";
+  }
+
+  // 4. Statutory Category Evaluation
+  let catKey = "classical";
+  if (
+    lower.includes("phytopharm") ||
+    lower.includes("rule 122-e") ||
+    lower.includes("122e") ||
+    lower.includes("purified fraction") ||
+    lower.includes("biomarker") ||
+    lower.includes("fraction of") ||
+    lower.includes("g.s.r. 918")
+  ) {
+    catKey = "phytopharm";
+  } else if (
+    lower.includes("synthetic") ||
+    lower.includes("plga") ||
+    lower.includes("copolymer") ||
+    lower.includes("new drug") ||
+    lower.includes("cdsco ndct") ||
+    lower.includes("sublingual mucosal spray") ||
+    lower.includes("parenteral")
+  ) {
+    catKey = "new_drug";
+  } else if (
+    lower.includes("aahar") ||
+    lower.includes("fssai") ||
+    lower.includes("dietary") ||
+    lower.includes("nutraceutical") ||
+    lower.includes("yava") ||
+    (lower.includes("supplement") && !lower.includes("pain"))
+  ) {
+    catKey = "aahar";
+  } else if (
+    lower.includes("cosmetic") ||
+    lower.includes("facial") ||
+    lower.includes("serum") ||
+    lower.includes("skin glow") ||
+    lower.includes("radiance") ||
+    lower.includes("complexion") ||
+    lower.includes("beautif") ||
+    lower.includes("kumkumadi")
+  ) {
+    catKey = "cosmetic";
+  } else if (
+    lower.includes("proprietary") ||
+    lower.includes("liposom") ||
+    lower.includes("nanocarrier") ||
+    lower.includes("nanoparticle") ||
+    lower.includes("phospholipid") ||
+    lower.includes("balm") ||
+    lower.includes("synerg") ||
+    lower.includes("bioavailability") ||
+    lower.includes("altered ratio") ||
+    lower.includes("transdermal")
+  ) {
+    catKey = "proprietary";
+  } else if (
+    lower.includes("charaka") ||
+    lower.includes("sushruta") ||
+    lower.includes("vagbhata") ||
+    lower.includes("first schedule") ||
+    lower.includes("classical") ||
+    lower.includes("chyawanprash") ||
+    lower.includes("kwath") ||
+    lower.includes("asava") ||
+    lower.includes("bhasma")
+  ) {
+    catKey = "classical";
+  } else {
+    // Fallback heuristic: check if any advanced tech or non-classical claim was detected
+    if (detectedTech.includes("Nanocarrier") || detectedClaims.includes("Pain")) {
+      catKey = "proprietary";
+    } else {
+      catKey = "classical";
+    }
+  }
+
+  const catData = CLASSIFIER_CATEGORIES_DATA[catKey] || CLASSIFIER_CATEGORIES_DATA.classical;
+
+  return {
+    catKey,
+    catData,
+    detectedBotanicals,
+    detectedTech,
+    detectedClaims,
+    rawText: text
+  };
 }
 
-function navigateWizardStep(direction) {
-  const nextStep = currentWizardStep + direction;
-  if (nextStep >= 1 && nextStep <= 4) {
-    jumpToWizardStep(nextStep);
-  } else if (nextStep > 4) {
-    // Scroll down to the live diagnosis card smoothly
-    const card = document.getElementById("liveTriageCard");
-    if (card) card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+function runFormulationClassification() {
+  const textarea = document.getElementById("classifierQueryInput");
+  const text = textarea ? textarea.value.trim() : "";
+  
+  if (!text) {
+    renderClassifierEmptyState();
+    return;
   }
+
+  currentClassifierText = text;
+  const triage = classifyUserFormulation(text);
+  currentActiveCategoryKey = triage.catKey;
+  renderClassifierDiagnosis(triage);
 }
 
-function selectWizardOption(qNum, value, el) {
-  wizardAnswers[`q${qNum}`] = value;
-
-  const pane = document.getElementById(`wizardQPane${qNum}`);
-  if (pane) {
-    pane.querySelectorAll(".wizard-option-card").forEach(c => c.classList.remove("active"));
-  }
-  if (el) el.classList.add("active");
-
-  updateClassifierDiagnosis();
+function renderClassifierEmptyState() {
+  const card = document.getElementById("liveTriageCard");
+  if (!card) return;
+  card.innerHTML = `
+    <div style="text-align: center; padding: 24px 16px; color: #64748B;">
+      <div style="font-size: 32px; margin-bottom: 8px;">✍️</div>
+      <div style="font-size: 14px; font-weight: 700; color: #334155; margin-bottom: 4px;">Write or select a formulation above to classify</div>
+      <div style="font-size: 12px;">Type your herbal ingredients, processing technology, and claims, or click one of the quick presets.</div>
+    </div>
+  `;
 }
 
-function evaluateClassifierCategory(answers) {
-  const { q1, q2, q3, q4 } = answers;
-
-  // 1. Phytopharmaceutical (D&C Amendment Rules 2015, Rule 122-E / Schedule Y)
-  if (q1 === "phytopharm_fraction" || q2 === "purified_fraction_chrom" || q3 === "ind_pharma_claim") {
-    return CLASSIFIER_CATEGORIES_DATA.phytopharm;
-  }
-
-  // 2. Ayurveda-Aahar / Nutraceutical (FSSAI 2022)
-  if (q1 === "aahar_recipe" || q2 === "food_processing" || q3 === "wellness_dietary") {
-    return CLASSIFIER_CATEGORIES_DATA.aahar;
-  }
-
-  // 3. Ayush Cosmetic (Rule 158-B Topical Beautification)
-  if (q1 === "cosmetic_recipe" || q3 === "beautification_claim" || (q4 === "topical_external" && q3 !== "proprietary_clinical_claim" && q3 !== "classical_indication")) {
-    return CLASSIFIER_CATEGORIES_DATA.cosmetic;
-  }
-
-  // 4. New / Non-Classical Drug (Central CDSCO NDCT Rules 2019)
-  if (q1 === "new_drug_composition" || q2 === "advanced_nanocarrier" || q3 === "new_disease_claim" || q4 === "mucosal_parenteral") {
-    return CLASSIFIER_CATEGORIES_DATA.new_drug;
-  }
-
-  // 5. Patent or Proprietary ASU Medicine (Rule 158-B Category II)
-  if (q1 === "proprietary_ratio" || q2 === "standardized_solvent" || q3 === "proprietary_clinical_claim") {
-    return CLASSIFIER_CATEGORIES_DATA.proprietary;
-  }
-
-  // 6. Classical / Generic ASU Medicine (First Schedule)
-  return CLASSIFIER_CATEGORIES_DATA.classical;
-}
-
-function updateClassifierDiagnosis() {
-  const cat = evaluateClassifierCategory(wizardAnswers);
+function renderClassifierDiagnosis(triage) {
   const card = document.getElementById("liveTriageCard");
   if (!card) return;
 
+  const cat = triage.catData;
   const scoreNum = Math.min(94.5, cat.patentDefensibility);
 
+  const botanicalsHtml = triage.detectedBotanicals.length > 0
+    ? triage.detectedBotanicals.map(b => `<span class="deconstruct-pill">🌿 ${escapeHtml(b)}</span>`).join(" ")
+    : `<span class="deconstruct-pill" style="color: #64748B;">Custom Botanical Formulation</span>`;
+
   card.innerHTML = `
+    <!-- Top Row: Category Identity & Regulatory Authority Badge -->
     <div class="triage-header-row">
       <div class="triage-cat-badge">
         <span>${cat.icon}</span>
-        <span>Determined Category ${cat.num}: ${cat.title}</span>
+        <span>Determined Statutory Category ${cat.num}: ${cat.title}</span>
       </div>
       <span class="status-badge ${cat.badgeClass}">${cat.badgeText}</span>
     </div>
 
+    <!-- Deconstructed Formulation Parameters -->
+    <div class="deconstruct-meta-grid">
+      <div class="deconstruct-item" style="grid-column: 1 / -1;">
+        <span class="deconstruct-label">Extracted Bioresources / Botanicals:</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 3px;">
+          ${botanicalsHtml}
+        </div>
+      </div>
+      <div class="deconstruct-item">
+        <span class="deconstruct-label">Delivery / Processing Technology:</span>
+        <span class="deconstruct-val">${escapeHtml(triage.detectedTech)}</span>
+      </div>
+      <div class="deconstruct-item">
+        <span class="deconstruct-label">Intended Claims &amp; Target:</span>
+        <span class="deconstruct-val">${escapeHtml(triage.detectedClaims)}</span>
+      </div>
+    </div>
+
+    <!-- Statutory & Regulatory Pathway Details -->
     <div class="triage-grid-meta">
       <div class="triage-meta-block">
         <span class="triage-meta-label">Governing Act &amp; Section</span>
         <span class="triage-meta-val">${cat.act}</span>
       </div>
       <div class="triage-meta-block">
-        <span class="triage-meta-label">Regulatory Authority &amp; Form</span>
+        <span class="triage-meta-label">Licensing Authority &amp; Form</span>
         <span class="triage-meta-val">${cat.authority} • <strong>${cat.licenseForm}</strong></span>
       </div>
       <div class="triage-meta-block" style="grid-column: 1 / -1;">
@@ -1881,6 +2041,16 @@ function updateClassifierDiagnosis() {
     <div class="triage-alert-box alert-workaround">
       <span>💡</span>
       <div><strong>Strategic Filing Recommendation:</strong> ${cat.workaround}</div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; flex-wrap: wrap;">
+      <button type="button" class="btn-classify-clear" onclick="copyClassifierDossier()" style="display: inline-flex; align-items: center; gap: 4px;">
+        <span>📋</span> Copy Classification Dossier
+      </button>
+      <button type="button" class="btn-classify-run" onclick="applyClassifierToChat()" style="background: #047857;">
+        <span>💬</span> Launch Deep Analysis in Chatbot ->
+      </button>
     </div>
   `;
 }
@@ -1954,10 +2124,17 @@ function renderCategoryDetail(catKey) {
 }
 
 function applyClassifierToChat() {
-  const cat = evaluateClassifierCategory(wizardAnswers);
+  const textarea = document.getElementById("classifierQueryInput");
+  const userText = textarea ? textarea.value.trim() : (currentClassifierText || "");
+  const triage = classifyUserFormulation(userText);
+  const cat = triage.catData;
   closeScannerModal();
 
-  const query = `Evaluate statutory patentability and regulatory approval pathway for a ${cat.title} (${cat.act}) under Indian Patent Law (Section 3(p), Section 3(e)) and Biological Diversity Act Section 6 prior approval.`;
+  const query = `Evaluate statutory patentability and regulatory approval pathway for this Ayush formulation:
+"${userText}"
+Classified Category: Category ${cat.num}: ${cat.title} (${cat.act})
+Regulatory Authority: ${cat.authority} (Application Form: ${cat.licenseForm})
+Assess Section 3(p) / 3(e) patent hurdles, Biological Diversity Act ABS approval, and required clinical safety validation.`;
 
   const hero = document.getElementById("emptyStateHero");
   if (hero) hero.style.display = "none";
@@ -1969,26 +2146,35 @@ function applyClassifierToChat() {
 }
 
 function copyClassifierDossier() {
-  const cat = evaluateClassifierCategory(wizardAnswers);
+  const textarea = document.getElementById("classifierQueryInput");
+  const userText = textarea ? textarea.value.trim() : (currentClassifierText || "");
+  const triage = classifyUserFormulation(userText);
+  const cat = triage.catData;
   const scoreNum = Math.min(94.5, cat.patentDefensibility);
 
   const dossier = `# AYUSH FORMULATION STATUTORY CLASSIFICATION DOSSIER
-**Category ${cat.num}:** ${cat.title}
+**Formulation Input:** ${userText}
+**Determined Category ${cat.num}:** ${cat.title}
 **Governing Act:** ${cat.act}
 **Regulating Authority:** ${cat.authority}
-**Mandatory Form:** ${cat.licenseForm}
+**Mandatory License Form:** ${cat.licenseForm}
 
-## 1. Clinical Safety & Efficacy Mandate
+## 1. Deconstructed Parameters
+- **Detected Botanicals:** ${triage.detectedBotanicals.join(", ") || "Herbal mixture"}
+- **Delivery & Processing Technology:** ${triage.detectedTech}
+- **Intended Claims:** ${triage.detectedClaims}
+
+## 2. Clinical Safety & Efficacy Mandate
 ${cat.clinicalTrials}
 
-## 2. Intellectual Property (IP) Posture
+## 3. Intellectual Property (IP) Posture
 - **Section 3(p) / 3(e) Bar:** ${cat.ipBarrier}
 - **Patentability Defensibility Score:** ${scoreNum.toFixed(1)}%
 
-## 3. Biological Diversity Act (ABS) Posture
+## 4. Biological Diversity Act (ABS) Posture
 ${cat.absPosture}
 
-## 4. Strategic Recommendation
+## 5. Strategic Filing Recommendation
 ${cat.workaround}
 
 *Generated by IP-SAKTI Sahayak — Ministry of Ayush*`;
@@ -2002,7 +2188,7 @@ ${cat.workaround}
 
 // Backward-compatible scanner aliases
 async function calcScannerScore() {
-  updateClassifierDiagnosis();
+  runFormulationClassification();
 }
 
 function applyScannerToChat() {
@@ -5184,8 +5370,9 @@ function toggleJurisdiction(forcedValue) {
 
 function updateJurisdictionUI(showToast = false) {
   const isIntl = currentJurisdiction === "international";
+  const isHi = (typeof currentAyushLanguage !== "undefined" && currentAyushLanguage === "hi");
 
-  // 1. Header Jurisdiction Button (if present)
+  // 1. Header Jurisdiction Button: shows target destination
   const headerBtn = document.getElementById("headerJurisdictionBtn");
   const flagEl = document.getElementById("headerJurisdictionFlag");
   const labelEl = document.getElementById("headerJurisdictionLabel");
@@ -5193,25 +5380,38 @@ function updateJurisdictionUI(showToast = false) {
     if (isIntl) {
       headerBtn.classList.add("intl-active");
       headerBtn.title = "Current: International (Global Treaties). Click to switch to India (National).";
-      if (flagEl) flagEl.textContent = "🌐";
-      if (labelEl) labelEl.textContent = "International";
+      if (flagEl) flagEl.textContent = "🇮🇳";
+      if (labelEl) labelEl.textContent = isHi ? "भारत पर जाएं" : "Switch to India";
     } else {
       headerBtn.classList.remove("intl-active");
-      headerBtn.title = "Current: India (National). Click to switch to International.";
-      if (flagEl) flagEl.textContent = "🇮🇳";
-      if (labelEl) labelEl.textContent = "India";
+      headerBtn.title = "Current: India (National). Click to switch to International (Global Treaties).";
+      if (flagEl) flagEl.textContent = "🌐";
+      if (labelEl) labelEl.textContent = isHi ? "अंतर्राष्ट्रीय पर जाएं" : "Switch to International";
     }
   }
 
-  // 2. Sidebar Item
+  // 2. Sidebar Item: shows target destination
   const sidebarIcon = document.getElementById("sidebarJurisdictionIcon");
   const sidebarText = document.getElementById("sidebarJurisdictionText");
   const sidebarBadge = document.getElementById("sidebarJurisdictionBadge");
-  if (sidebarIcon) sidebarIcon.textContent = isIntl ? "🌐" : "🇮🇳";
-  if (sidebarText) sidebarText.textContent = isIntl ? "Regime: International" : "Regime: India";
+  const sidebarItem = document.getElementById("sidebarJurisdictionItem");
+  if (sidebarIcon) sidebarIcon.textContent = isIntl ? "🇮🇳" : "🌐";
+  if (sidebarText) {
+    sidebarText.textContent = isIntl 
+      ? (isHi ? "भारत पर जाएं" : "Switch to India") 
+      : (isHi ? "अंतर्राष्ट्रीय पर जाएं" : "Switch to International");
+    sidebarText.style.color = isIntl ? "#047857" : "#1D4ED8";
+  }
   if (sidebarBadge) {
-    sidebarBadge.textContent = isIntl ? "GLOBAL" : "NATIONAL";
-    sidebarBadge.style.background = isIntl ? "#2563EB" : "#059669";
+    sidebarBadge.textContent = isIntl ? "TO INDIA" : "TO INTL";
+    sidebarBadge.style.background = isIntl ? "#059669" : "#2563EB";
+  }
+  if (sidebarItem) {
+    sidebarItem.style.background = isIntl ? "rgba(16, 185, 129, 0.08)" : "rgba(37, 99, 235, 0.08)";
+    sidebarItem.style.borderColor = isIntl ? "rgba(16, 185, 129, 0.25)" : "rgba(37, 99, 235, 0.25)";
+    sidebarItem.title = isIntl 
+      ? "Current: International (Global Treaties). Click to switch to India (National)." 
+      : "Current: India (National). Click to switch to International (Global Treaties).";
   }
 
   // 3. Update Suggestion Cards dynamically based on Jurisdiction
