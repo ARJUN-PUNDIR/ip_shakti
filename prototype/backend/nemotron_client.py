@@ -10,6 +10,7 @@ Supports:
 import os
 import json
 import asyncio
+from typing import Optional, Dict, Any, List
 import requests
 from pathlib import Path
 from dotenv import load_dotenv
@@ -18,6 +19,34 @@ from dotenv import load_dotenv
 env_path = Path(__file__).resolve().parent.parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 load_dotenv()  # Also load from current working directory
+
+# Sync LangSmith / LangChain tracing environment variables
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(*args, **kwargs):
+        def decorator(f):
+            return f
+        return decorator
+
+def sync_langsmith_config():
+    load_dotenv(dotenv_path=env_path, override=True)
+    load_dotenv(override=True)
+    _ls_key = (os.getenv("LANGSMITH_API_KEY") or os.getenv("LANGCHAIN_API_KEY") or "").strip()
+    if _ls_key and _ls_key != "your_langsmith_api_key_here" and not _ls_key.startswith("paste_"):
+        os.environ["LANGSMITH_API_KEY"] = _ls_key
+        os.environ["LANGCHAIN_API_KEY"] = _ls_key
+        os.environ["LANGSMITH_TRACING"] = "true"
+        os.environ["LANGCHAIN_TRACING_V2"] = "true"
+        os.environ.setdefault("LANGSMITH_PROJECT", os.getenv("LANGCHAIN_PROJECT", "ip-sakti-sahayak"))
+        os.environ.setdefault("LANGCHAIN_PROJECT", os.getenv("LANGSMITH_PROJECT", "ip-sakti-sahayak"))
+        return True
+    else:
+        os.environ["LANGSMITH_TRACING"] = "false"
+        os.environ["LANGCHAIN_TRACING_V2"] = "false"
+        return False
+
+sync_langsmith_config()
 
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 OPENAI_BASE_URL = "https://api.openai.com/v1/chat/completions"
@@ -204,6 +233,7 @@ MULTI-AGENT STATUTORY STATE-GRAPH CONTEXT (INDIA JURISDICTION):
 - Recommended Strategic Workaround: {workaround}
 """
 
+    @traceable(name="IP_SAKTI_LLM_Query", run_type="llm")
     def query(self, user_query: str, domain: str = "Ayurveda", language: str = "en", state_context: dict = None) -> dict:
         """
         Executes query with multi-provider routing:
@@ -212,6 +242,7 @@ MULTI-AGENT STATUTORY STATE-GRAPH CONTEXT (INDIA JURISDICTION):
         3. Local Ollama LLM (if Ollama provider active on localhost:11434)
         4. Structured Multi-Agent StateGraph Legal Synthesis
         """
+        sync_langsmith_config()
         grounding_context = self._build_grounding_context(state_context)
         jurisdiction = (state_context.get("jurisdiction", "india") if state_context else "india").lower()
 
@@ -329,7 +360,7 @@ CRITICAL RULES:
                         "max_tokens": 850
                     }
                     try:
-                        resp = requests.post(NVIDIA_BASE_URL, headers=headers, json=payload, timeout=6)
+                        resp = requests.post(NVIDIA_BASE_URL, headers=headers, json=payload, timeout=35)
                         if resp.status_code == 200:
                             data = resp.json()
                             content = data["choices"][0]["message"]["content"]
@@ -514,7 +545,7 @@ CRITICAL RULES:
                 }
                 try:
                     def fetch_nvidia():
-                        return requests.post(NVIDIA_BASE_URL, headers=headers, json=payload, stream=True, timeout=8)
+                        return requests.post(NVIDIA_BASE_URL, headers=headers, json=payload, stream=True, timeout=30)
 
                     resp = await loop.run_in_executor(None, fetch_nvidia)
                     if resp.status_code == 200:
@@ -563,10 +594,12 @@ CRITICAL RULES:
             yield {"token": token, "source": "state_graph_rules", "model": "StateGraph Grounded Engine"}
             await asyncio.sleep(0.012)
 
+    @traceable(name="IP_SAKTI_Goal_Roadmap", run_type="llm")
     def generate_custom_roadmap_json(self, goal_query: str, state_context: dict = None) -> Optional[dict]:
         """
         Synthesizes a query-specific 6-stage milestone roadmap in JSON format using LLM.
         """
+        sync_langsmith_config()
         grounding_context = self._build_grounding_context(state_context)
         prompt_content = f"""You are IP-SAKTI Regulatory Architect for the Ministry of Ayush, Government of India.
 Construct an authoritative, customized 6-stage regulatory roadmap for the user's specific innovation goal:
@@ -635,7 +668,7 @@ DO NOT include markdown fences (no ```json). Output pure JSON only."""
                         "max_tokens": 1200
                     }
                     try:
-                        resp = requests.post(NVIDIA_BASE_URL, headers=headers, json=payload, timeout=5)
+                        resp = requests.post(NVIDIA_BASE_URL, headers=headers, json=payload, timeout=35)
                         if resp.status_code == 200:
                             text = resp.json()["choices"][0]["message"]["content"]
                             parsed = self._parse_json_safe(text)

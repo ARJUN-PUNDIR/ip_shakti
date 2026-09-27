@@ -22,6 +22,14 @@ from pipeline.nodes import (
     verifier_node
 )
 
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(*args, **kwargs):
+        def decorator(f):
+            return f
+        return decorator
+
 START = "__start__"
 END = "__end__"
 
@@ -101,6 +109,7 @@ class RegulatoryStateGraph:
             "edges": active_edges
         }
 
+    @traceable(name="IP_SAKTI_StateGraph_Pipeline", run_type="chain")
     def invoke(self, initial_state: Any, domain: str = "Ayurveda", language: str = "en", jurisdiction: str = "india") -> RegulatoryState:
         """
         Executes the StateGraph across defined nodes and edges based on jurisdiction.
@@ -109,6 +118,12 @@ class RegulatoryStateGraph:
         International Mode:
           normalizer -> [wipo_gratk_agent, cbd_nagoya_agent, eu_thmpd_agent, us_fda_agent] -> conflict_detector -> workaround_synthesizer -> verifier
         """
+        try:
+            from nemotron_client import sync_langsmith_config
+            sync_langsmith_config()
+        except Exception:
+            pass
+
         if isinstance(initial_state, str):
             state: RegulatoryState = {
                 "query": initial_state,

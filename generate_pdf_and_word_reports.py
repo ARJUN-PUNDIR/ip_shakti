@@ -51,7 +51,6 @@ class NumberedCanvas(canvas.Canvas):
             self.draw_page_decorations(num_pages)
             super().showPage()
         super().save()
-
     def draw_page_decorations(self, page_count):
         self.saveState()
         self.setFont("Helvetica", 8)

@@ -4,6 +4,14 @@ Integrates NVIDIA Nemotron NIM API, Atomic Clause RAG, Conflict Detection & Doc 
 """
 
 import os
+import sys
+from pathlib import Path
+
+# Ensure backend directory is in python path
+backend_dir = Path(__file__).resolve().parent
+if str(backend_dir) not in sys.path:
+    sys.path.insert(0, str(backend_dir))
+
 import json
 import asyncio
 import uvicorn
@@ -1160,5 +1168,8 @@ def schedule_mentor_meeting(req: MentorScheduleRequest):
     }
 
 if __name__ == "__main__":
-    uvicorn.run("server:app", host="127.0.0.1", port=8000, reload=False)
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8000"))
+    print(f"🏛️ IP-SAKTI Sahayak running on http://{host}:{port}")
+    uvicorn.run("server:app", host=host, port=port, reload=False)
 
